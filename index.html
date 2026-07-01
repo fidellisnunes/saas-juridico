@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaaS Jurídico - Painel de Controle</title>
+  
+  <!-- Fontes Premium -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Iconografia (FontAwesome) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* --------------------------------------------------
+       SISTEMA DE DESIGN & VARIAVEIS (AESTHETIC PREMIUM)
+       -------------------------------------------------- */
+    :root {
+      --bg-dark: #0B0F19;
+      --bg-card: rgba(22, 28, 45, 0.7);
+      --bg-sidebar: #060913;
+      --border-color: rgba(197, 168, 128, 0.15);
+      --border-glow: rgba(197, 168, 128, 0.3);
+      --text-main: #F3F4F6;
+      --text-muted: #9CA3AF;
+      
+      /* Tons de Ouro/Bronze para Advocacia */
+      --gold-primary: #C5A880;
+      --gold-hover: #E2C7A1;
+      --gold-gradient: linear-gradient(135deg, #C5A880 0%, #8E6D43 100%);
+      
+      /* Cores de Status */
+      --color-success: #10B981;
+      --color-warning: #F59E0B;
+      --color-danger: #EF4444;
+      --color-info: #3B82F6;
+      
+      --font-sans: 'Outfit', sans-serif;
+      --font-serif: 'Playfair Display', serif;
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow-x: hidden;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Scrollbar Customizada */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--gold-primary);
+    }
+
+    /* --------------------------------------------------
+       LAYOUT E SIDEBAR
+       -------------------------------------------------- */
+    .sidebar {
+      width: 260px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 2rem 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 3rem;
+    }
+
+    .brand-logo {
+      font-size: 1.5rem;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .menu-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: var(--transition-smooth);
+    }
+
+    .menu-item i {
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+    }
+
+    .menu-item:hover, .menu-item.active {
+      color: var(--text-main);
+      background-color: rgba(197, 168, 128, 0.1);
+      border-left: 3px solid var(--gold-primary);
+      padding-left: calc(1rem - 3px);
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--gold-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: var(--bg-dark);
+      border: 2px solid var(--border-color);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      width: 170px;
+      overflow: hidden;
+    }
+
+    .user-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .user-role {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* --------------------------------------------------
+       CONTEÚDO PRINCIPAL
+       -------------------------------------------------- */
+    .main-content {
+      flex-grow: 1;
+      padding: 2.5rem 3rem;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .header-title h1 {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .header-title p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .btn-action {
+      background: var(--gold-gradient);
+      color: var(--bg-dark);
+      border: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition-smooth);
+      box-shadow: 0 4px 15px rgba(197, 168, 128, 0.2);
+    }
+
+    .btn-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(197, 168, 128, 0.35);
+    }
+
+    .btn-action:active {
+      transform: translateY(0);
+    }
+
+    /* --------------------------------------------------
+       CARDS DE ESTATÍSTICA (DASHBOARD)
+       -------------------------------------------------- */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+      background-color: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: var(--transition-smooth);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--gold-primary);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(197, 168, 128, 0.05);
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0.25rem 0;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: rgba(197, 168, 128, 0.08);
+      color: var(--gold-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    /* --------------------------------------------------
+       TABS / CONTEÚDO DINÂMICO
+       -------------------------------------------------- */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .panel {
+      background-color: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .panel-title {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* --------------------------------------------------
+       CALCULADORA DE PRAZOS
+       -------------------------------------------------- */
+    .calc-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .form-control {
+      width: 100%;
+      background-color: rgba(10, 14, 25, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      transition: var(--transition-smooth);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 10px rgba(197, 168, 128, 0.2);
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .radio-label input {
+      accent-color: var(--gold-primary);
+      width: 18px;
+      height: 18px;
+    }
+
+    .holidays-list {
+      margin-top: 1rem;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.5rem;
+      background: rgba(10, 14, 25, 0.4);
+    }
+
+    .holiday-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(197, 168, 128, 0.15);
+      border: 1px solid var(--gold-primary);
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      margin: 0.25rem;
+    }
+
+    .holiday-tag i {
+      cursor: pointer;
+      color: var(--color-danger);
+    }
+
+    .btn-add-holiday {
+      background: transparent;
+      color: var(--gold-primary);
+      border: 1px dashed var(--gold-primary);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-add-holiday:hover {
+      background: rgba(197, 168, 128, 0.1);
+    }
+
+    /* Painel de Resultados */
+    .calc-results {
+      background: rgba(197, 168, 128, 0.04);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 250px;
+      position: relative;
+    }
+
+    .result-placeholder {
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .result-placeholder i {
+      font-size: 2.5rem;
+      color: var(--gold-primary);
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .result-data {
+      display: none;
+    }
+
+    .result-date-badge {
+      text-align: center;
+      background: var(--gold-gradient);
+      color: var(--bg-dark);
+      padding: 1.5rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 20px rgba(197, 168, 128, 0.15);
+    }
+
+    .result-date-badge h2 {
+      font-size: 2.25rem;
+      font-weight: 700;
+    }
+
+    .result-date-badge p {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 1px;
+      opacity: 0.8;
+    }
+
+    .result-timeline {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .timeline-item {
+      display: flex;
+      justify-content: space-between;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+    }
+
+    .timeline-item span {
+      color: var(--text-muted);
+    }
+
+    .timeline-item strong {
+      color: var(--text-main);
+    }
+
+    /* --------------------------------------------------
+       DJEN MONITOR & LOGS
+       -------------------------------------------------- */
+    .djen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      background-color: var(--color-success);
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 10px var(--color-success);
+      animation: pulse 1.5s infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.8; }
+    }
+
+    .log-terminal {
+      background: #05070D;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 1.25rem;
+      height: 250px;
+      overflow-y: auto;
+      color: #38BDF8;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.8);
+    }
+
+    .log-terminal p {
+      margin: 0;
+    }
+
+    .log-line {
+      margin-bottom: 0.4rem;
+    }
+
+    .log-line.success { color: #34D399; }
+    .log-line.warn { color: #FBBF24; }
+    .log-line.info { color: #60A5FA; }
+
+    .intimacao-table-container {
+      overflow-x: auto;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    .table th, .table td {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .table th {
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    .table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .cnj-badge {
+      font-family: monospace;
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--color-info);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .read-badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--color-success);
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* --------------------------------------------------
+       MÓDULO DE CLIENTES
+       -------------------------------------------------- */
+    .client-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .client-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: var(--transition-smooth);
+    }
+
+    .client-card:hover {
+      border-color: var(--gold-primary);
+      transform: translateY(-2px);
+    }
+
+    .client-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.ativo { background-color: var(--color-success); }
+    .status-dot.arquivado { background-color: var(--text-muted); }
+    .status-dot.suspenso { background-color: var(--color-danger); }
+
+    .client-name {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+
+    .client-details {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .client-details i {
+      width: 16px;
+    }
+
+    .client-files {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR DA APLICAÇÃO -->
+  <aside class="sidebar">
+    <div class="brand">
+      <i class="fa-solid fa-scale-balanced brand-logo"></i>
+      <span class="brand-title">SaaS Jurídico</span>
+    </div>
+    
+    <nav>
+      <ul class="menu-list">
+        <li>
+          <a href="#" class="menu-item active" data-tab="dashboard">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="#" class="menu-item" data-tab="clientes">
+            <i class="fa-solid fa-folder-open"></i> CRM Clientes
+          </a>
+        </li>
+        <li>
+          <a href="#" class="menu-item" data-tab="djen">
+            <i class="fa-solid fa-satellite-dish"></i> Monitor DJEN e PJe
+          </a>
+        </li>
+        <li>
+          <a href="#" class="menu-item" data-tab="calculadora">
+            <i class="fa-solid fa-calculator"></i> Calculadora Prazos
+          </a>
+        </li>
+      </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <div class="user-avatar">RN</div>
+      <div class="user-info">
+        <span class="user-name" title="Dr. Rudson Fidellis Nunes">Dr. Rudson Fidellis Nunes</span>
+        <span class="user-role">OAB/ES 35.054</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="main-content">
+    
+    <!-- DASHBOARD TAB -->
+    <div id="dashboard" class="tab-content active">
+      <header class="header-bar">
+        <div class="header-title">
+          <h1>Painel de Controle - Dr. Rudson Fidellis Nunes</h1>
+          <p>Visão de controle processual para OAB/ES 35.054 com integração TJES e Trabalhista.</p>
+        </div>
+        <button class="btn-action" onclick="switchTab('calculadora')">
+          <i class="fa-solid fa-plus"></i> Novo Prazo
+        </button>
+      </header>
+
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">Processos em Controle</div>
+            <div class="stat-value" id="stats-processos">2</div>
+          </div>
+          <div class="stat-icon"><i class="fa-solid fa-briefcase"></i></div>
+        </div>
+        
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">Intimações DJEN / PJe</div>
+            <div class="stat-value" id="count-intimacoes">2</div>
+          </div>
+          <div class="stat-icon"><i class="fa-solid fa-envelope-open-text"></i></div>
+        </div>
+        
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">Clientes Cadastrados</div>
+            <div class="stat-value">5</div>
+          </div>
+          <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+        </div>
+        
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">Prazos Ativos</div>
+            <div class="stat-value">2</div>
+          </div>
+          <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        </div>
+      </section>
+
+      <div class="dashboard-layout">
+        <div class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="fa-solid fa-bell"></i> Prazos de Maior Urgência</h2>
+          </div>
+          <div class="intimacao-table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Processo</th>
+                  <th>Descrição</th>
+                  <th>Esfera</th>
+                  <th>Vencimento</th>
+                  <th>Alerta</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-prazos">
+                <tr>
+                  <td><span class="cnj-badge">0012456-78.2025.8.08.0024</span></td>
+                  <td>Réplica à contestação (TJES)</td>
+                  <td><strong style="color: var(--gold-primary)">Cível (CPC)</strong></td>
+                  <td><span style="color: var(--color-warning); font-weight: 600;" id="prazo-tjes-date">Calculando...</span></td>
+                  <td><span class="read-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--color-warning)">Pendente</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cnj-badge">0000345-12.2025.5.17.0002</span></td>
+                  <td>Manifestação de documentos (TRT17)</td>
+                  <td><strong style="color: #60A5FA">Trabalhista (CLT)</strong></td>
+                  <td><span style="color: var(--color-warning); font-weight: 600;" id="prazo-trt-date">Calculando...</span></td>
+                  <td><span class="read-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--color-warning)">Pendente</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="fa-solid fa-satellite-dish"></i> Monitor de Buscas</h2>
+          </div>
+          <ul class="result-timeline" id="dashboard-notifications">
+            <li class="timeline-item" style="padding: 0.5rem 0;">
+              <div>
+                <strong>OAB/ES 35.054</strong>
+                <p style="font-size: 0.8rem; color: var(--text-muted)">TJES Monitoramento Ativo - Sem novos alertas nas últimas 24h.</p>
+              </div>
+            </li>
+            <li class="timeline-item" style="padding: 0.5rem 0;">
+              <div>
+                <strong>PJe TRT17</strong>
+                <p style="font-size: 0.8rem; color: var(--text-muted)">Robô Trabalhista executado às 22:30.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRM CLIENTES TAB -->
+    <div id="clientes" class="tab-content">
+      <header class="header-bar">
+        <div class="header-title">
+          <h1>CRM Clientes & Pastas Virtuais</h1>
+          <p>Gerencie pastas integradas de clientes no Espírito Santo.</p>
+        </div>
+        <button class="btn-action">
+          <i class="fa-solid fa-user-plus"></i> Novo Cliente
+        </button>
+      </header>
+
+      <div class="client-list">
+        <!-- Cliente 1 -->
+        <div class="client-card">
+          <div class="client-header">
+            <span class="client-name">Vitória Logística S/A</span>
+            <span class="status-dot ativo" title="Ativo"></span>
+          </div>
+          <div class="client-details">
+            <span><i class="fa-solid fa-address-card"></i> CNPJ: 27.890.123/0001-44</span>
+            <span><i class="fa-solid fa-envelope"></i> contato@vitorialog.com.br</span>
+            <span><i class="fa-solid fa-phone"></i> (27) 3224-1000</span>
+          </div>
+          <div class="client-files">
+            <span><strong>1</strong> Processo (TJES)</span>
+            <span style="color: var(--gold-primary)"><i class="fa-solid fa-file-pdf"></i> 18 Docs</span>
+          </div>
+        </div>
+
+        <!-- Cliente 2 -->
+        <div class="client-card">
+          <div class="client-header">
+            <span class="client-name">Marcos Aurélio de Souza</span>
+            <span class="status-dot ativo" title="Ativo"></span>
+          </div>
+          <div class="client-details">
+            <span><i class="fa-solid fa-address-card"></i> CPF: 098.765.432-11</span>
+            <span><i class="fa-solid fa-envelope"></i> marcos.aurelio@gmail.com</span>
+            <span><i class="fa-solid fa-phone"></i> (27) 99881-2233</span>
+          </div>
+          <div class="client-files">
+            <span><strong>1</strong> Processo (TRT17)</span>
+            <span style="color: var(--gold-primary)"><i class="fa-solid fa-file-pdf"></i> 8 Docs</span>
+          </div>
+        </div>
+
+        <!-- Outros Clientes -->
+        <div class="client-card">
+          <div class="client-header">
+            <span class="client-name">Construtora Capixaba Ltda</span>
+            <span class="status-dot arquivado" title="Arquivado"></span>
+          </div>
+          <div class="client-details">
+            <span><i class="fa-solid fa-address-card"></i> CNPJ: 14.256.365/0001-08</span>
+            <span><i class="fa-solid fa-envelope"></i> financeiro@ccapixaba.com</span>
+            <span><i class="fa-solid fa-phone"></i> (27) 3322-4455</span>
+          </div>
+          <div class="client-files">
+            <span><strong>0</strong> Processos Ativos</span>
+            <span style="color: var(--gold-primary)"><i class="fa-solid fa-file-pdf"></i> 4 Docs</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONITOR DJEN TAB -->
+    <div id="djen" class="tab-content">
+      <header class="header-bar">
+        <div class="header-title">
+          <h1>Sincronizador DJEN & PJe (TJES e TRT-17)</h1>
+          <p>Consulta diária simulando busca na API pública por "Rudson Fidellis Nunes" e "OAB/ES 35.054".</p>
+        </div>
+        <button class="btn-action" id="btn-sync" onclick="iniciarSincronizacaoDJEN()">
+          <i class="fa-solid fa-rotate"></i> Sincronizar OAB/ES 35.054
+        </button>
+      </header>
+
+      <div class="panel">
+        <div class="djen-header">
+          <div class="panel-title">
+            <span class="pulse-dot"></span> Terminal de Consulta de Intimações (PJe / DJEN)
+          </div>
+          <span style="font-size: 0.85rem; color: var(--text-muted)">Integrações: <strong>TJES & TRT-17 Online</strong></span>
+        </div>
+        
+        <div class="log-terminal" id="terminal-logs">
+          <div class="log-line info">[SISTEMA] Serviço de escuta iniciado em segundo plano...</div>
+          <div class="log-line info">[SISTEMA] Credenciais do Advogado carregadas: Rudson Fidellis Nunes (OAB/ES 35.054)</div>
+          <div class="log-line info">[SISTEMA] Aguardando acionamento manual ou agendamento diário...</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="fa-solid fa-envelope-open"></i> Intimações Identificadas</h2>
+        </div>
+        <div class="intimacao-table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Fonte / Tribunal</th>
+                <th>Publicação / Intimação</th>
+                <th>Processo CNJ</th>
+                <th>Vínculo</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-intimacoes">
+              <!-- Populado dinamicamente -->
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  Clique em "Sincronizar OAB/ES 35.054" acima para realizar a busca no TJES e TRT-17.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALCULADORA DE PRAZOS TAB -->
+    <div id="calculadora" class="tab-content">
+      <header class="header-bar">
+        <div class="header-title">
+          <h1>Calculadora Inteligente de Prazos</h1>
+          <p>Simulação e geração de prazos em dias úteis de acordo com o CPC e a Reforma Trabalhista (CLT).</p>
+        </div>
+      </header>
+
+      <div class="calc-container">
+        
+        <!-- Formulário de Entrada -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="fa-solid fa-gears"></i> Parâmetros do Prazo</h2>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Data da Publicação/Notificação</label>
+            <input type="date" class="form-control" id="calc-data-publicacao" value="2026-07-07">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Prazo (em dias)</label>
+            <input type="number" class="form-control" id="calc-dias" value="15" min="1">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Esfera Judicial / Regra de Negócio</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="esfera" value="CPC" checked> Cível (CPC - Dias Úteis)
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="esfera" value="CLT"> Trabalhista (CLT - Dias Úteis)
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Feriados e Suspensões Customizados</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="date" class="form-control" id="calc-data-feriado" value="2026-07-13">
+              <button class="btn-action" style="padding: 0.5rem 1rem;" onclick="adicionarFeriado()">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+            
+            <div class="holidays-list" id="lista-feriados">
+              <!-- Feriados inseridos aparecem aqui -->
+              <span class="holiday-tag" id="tag-exemplo">
+                13/07/2026 (Local) <i class="fa-solid fa-xmark" onclick="removerFeriado('tag-exemplo', '2026-07-13')"></i>
+              </span>
+            </div>
+          </div>
+
+          <button class="btn-action" style="width: 100%; justify-content: center; margin-top: 1.5rem;" onclick="dispararCalculo()">
+            <i class="fa-solid fa-calculator"></i> Calcular Prazo Final
+          </button>
+        </div>
+
+        <!-- Painel de Resultados -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="fa-solid fa-calendar-check"></i> Resultado do Cálculo</h2>
+          </div>
+          
+          <div class="calc-results">
+            <!-- Sem cálculo -->
+            <div class="result-placeholder" id="resultado-placeholder">
+              <i class="fa-solid fa-scale-unbalanced"></i>
+              <p>Preencha os dados e clique em "Calcular Prazo Final" para visualizar o vencimento.</p>
+            </div>
+
+            <!-- Dados do Cálculo -->
+            <div class="result-data" id="resultado-dados">
+              <div class="result-date-badge">
+                <p>Data Limite para Protocolo</p>
+                <h2 id="res-data-final">--/--/----</h2>
+                <p id="res-dia-semana">---</p>
+              </div>
+
+              <ul class="result-timeline">
+                <li class="timeline-item">
+                  <span>Início da Contagem (D+1):</span>
+                  <strong id="res-data-inicio">--/--/----</strong>
+                </li>
+                <li class="timeline-item">
+                  <span>Regra Aplicada:</span>
+                  <strong id="res-regra">--</strong>
+                </li>
+                <li class="timeline-item">
+                  <span>Finais de semana pulados:</span>
+                  <strong id="res-fins-semana">--</strong>
+                </li>
+                <li class="timeline-item">
+                  <span>Feriados/Recessos pulados:</span>
+                  <strong id="res-feriados-pulados">--</strong>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // --------------------------------------------------
+    // CONTROLE DE NAVEGAÇÃO ENTRE ABAS
+    // --------------------------------------------------
+    const menuItems = document.querySelectorAll('.menu-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    menuItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tabId = item.getAttribute('data-tab');
+        
+        // Remove active de todos
+        menuItems.forEach(i => i.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        // Adiciona active no selecionado
+        item.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+
+    function switchTab(tabId) {
+      const targetMenu = document.querySelector(`.menu-item[data-tab="${tabId}"]`);
+      if (targetMenu) targetMenu.click();
+    }
+
+    // --------------------------------------------------
+    // LÓGICA DE FÉRIAS E FERIADOS DA CALCULADORA
+    // --------------------------------------------------
+    const feriadosCadastrados = ["2026-07-13"]; // Inicia com feriado de exemplo
+
+    function adicionarFeriado() {
+      const inputFeriado = document.getElementById('calc-data-feriado');
+      const dataStr = inputFeriado.value;
+      if (!dataStr) return;
+
+      if (feriadosCadastrados.includes(dataStr)) {
+        alert("Este feriado já foi cadastrado.");
+        return;
+      }
+
+      feriadosCadastrados.push(dataStr);
+      renderizarFeriados();
+    }
+
+    function removerFeriado(idTag, dataStr) {
+      const index = feriadosCadastrados.indexOf(dataStr);
+      if (index > -1) {
+        feriadosCadastrados.splice(index, 1);
+      }
+      renderizarFeriados();
+    }
+
+    function renderizarFeriados() {
+      const container = document.getElementById('lista-feriados');
+      container.innerHTML = "";
+      
+      feriadosCadastrados.forEach((dataStr, idx) => {
+        const [ano, mes, dia] = dataStr.split('-');
+        const dataFormatada = `${dia}/${mes}/${ano}`;
+        const tagId = `tag-feriado-${idx}`;
+        
+        const span = document.createElement('span');
+        span.className = 'holiday-tag';
+        span.id = tagId;
+        span.innerHTML = `${dataFormatada} <i class="fa-solid fa-xmark" onclick="removerFeriado('${tagId}', '${dataStr}')"></i>`;
+        container.appendChild(span);
+      });
+    }
+
+    // --------------------------------------------------
+    // ALGORITMO DE CALCULO DE PRAZO EM DIAS ÚTEIS (JS)
+    // --------------------------------------------------
+    function normalizarData(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function isDiaUtil(date, feriadosSet) {
+      const diaSemana = date.getDay(); // 0 = Domingo, 6 = Sábado
+      if (diaSemana === 0 || diaSemana === 6) {
+        return { util: false, motivo: 'Fim de semana' };
+      }
+
+      // Recesso Forense Nacional (20 de Dezembro a 20 de Janeiro)
+      const mes = date.getMonth();
+      const dia = date.getDate();
+      if ((mes === 11 && dia >= 20) || (mes === 0 && dia <= 20)) {
+        return { util: false, motivo: 'Recesso Forense' };
+      }
+
+      const formatada = normalizarData(date);
+      if (feriadosSet.has(formatada)) {
+        return { util: false, motivo: 'Feriado cadastrado' };
+      }
+
+      return { util: true };
+    }
+
+    function calcularVencimentoRaw(dataPubInput, diasInput, esfera, feriadosSet) {
+      const dataPublicacao = new Date(dataPubInput + 'T12:00:00');
+      let dataCorrente = new Date(dataPublicacao.getTime());
+      let diasContados = 0;
+
+      while (diasContados < diasInput) {
+        dataCorrente.setDate(dataCorrente.getDate() + 1);
+        const check = isDiaUtil(dataCorrente, feriadosSet);
+        if (check.util) {
+          diasContados++;
+        }
+      }
+      return dataCorrente;
+    }
+
+    function dispararCalculo() {
+      const dataPubInput = document.getElementById('calc-data-publicacao').value;
+      const diasInput = parseInt(document.getElementById('calc-dias').value, 10);
+      const esfera = document.querySelector('input[name="esfera"]:checked').value;
+
+      if (!dataPubInput || isNaN(diasInput) || diasInput <= 0) {
+        alert("Preencha todos os parâmetros corretamente.");
+        return;
+      }
+
+      const feriadosSet = new Set(feriadosCadastrados);
+      const dataPublicacao = new Date(dataPubInput + 'T12:00:00');
+      
+      let dataCorrente = new Date(dataPublicacao.getTime());
+      let diasContados = 0;
+      let finsSemanaPulados = 0;
+      let feriadosRecessosPulados = 0;
+      let dataInicioContagem = null;
+
+      while (diasContados < diasInput) {
+        dataCorrente.setDate(dataCorrente.getDate() + 1);
+        
+        const check = isDiaUtil(dataCorrente, feriadosSet);
+        if (check.util) {
+          diasContados++;
+          if (diasContados === 1) {
+            dataInicioContagem = new Date(dataCorrente.getTime());
+          }
+        } else {
+          if (check.motivo === 'Fim de semana') {
+            finsSemanaPulados++;
+          } else {
+            feriadosRecessosPulados++;
+          }
+        }
+      }
+
+      document.getElementById('resultado-placeholder').style.display = 'none';
+      const dadosDiv = document.getElementById('resultado-dados');
+      dadosDiv.style.display = 'block';
+
+      const diaSemanaNomes = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+      const vencimentoFormatado = dataCorrente.toLocaleDateString('pt-BR');
+      const inicioFormatado = dataInicioContagem ? dataInicioContagem.toLocaleDateString('pt-BR') : '--/--/----';
+      
+      document.getElementById('res-data-final').innerText = vencimentoFormatado;
+      document.getElementById('res-dia-semana').innerText = diaSemanaNomes[dataCorrente.getDay()];
+      document.getElementById('res-data-inicio').innerText = inicioFormatado;
+      document.getElementById('res-regra').innerText = esfera === 'CPC' ? 'Cível (CPC Art. 219) - Dias Úteis' : 'Trabalhista (CLT Art. 775) - Dias Úteis';
+      document.getElementById('res-fins-semana').innerText = `${finsSemanaPulados} dias`;
+      document.getElementById('res-feriados-pulados').innerText = `${feriadosRecessosPulados} dias`;
+    }
+
+    // Inicializa datas padrão no dashboard
+    function inicializarPrazosDashboard() {
+      // Data base de simulação: Hoje (30/06/2026)
+      const feriadosSet = new Set();
+      
+      // TJES: Réplica em 15 dias cíveis. Publicação em 29/06/2026.
+      const vencTjes = calcularVencimentoRaw('2026-06-29', 15, 'CPC', feriadosSet);
+      document.getElementById('prazo-tjes-date').innerText = `${vencTjes.toLocaleDateString('pt-BR')} (${vencTjes.toLocaleDateString('pt-BR', {weekday: 'long'})})`;
+
+      // TRT17: Manifestação em 8 dias trabalhistas. Publicação em 30/06/2026.
+      const vencTrt = calcularVencimentoRaw('2026-06-30', 8, 'CLT', feriadosSet);
+      document.getElementById('prazo-trt-date').innerText = `${vencTrt.toLocaleDateString('pt-BR')} (${vencTrt.toLocaleDateString('pt-BR', {weekday: 'long'})})`;
+    }
+
+    window.onload = () => {
+      inicializarPrazosDashboard();
+    };
+
+    // --------------------------------------------------
+    // SIMULAÇÃO DO CLIENT DJEN E PJe SERVICE (CAPIXABA)
+    // --------------------------------------------------
+    function formatarLog(texto, tipo = 'info') {
+      const terminal = document.getElementById('terminal-logs');
+      const div = document.createElement('div');
+      div.className = `log-line ${tipo}`;
+      div.innerText = `[${new Date().toLocaleTimeString('pt-BR')}] ${texto}`;
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    let syncAtivo = false;
+
+    function iniciarSincronizacaoDJEN() {
+      if (syncAtivo) return;
+      syncAtivo = true;
+      
+      const btn = document.getElementById('btn-sync');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando no PJe/DJEN...';
+      btn.disabled = true;
+
+      formatarLog("[ROBÔ] Iniciando varredura automatizada no DJEN Nacional...", 'info');
+      
+      setTimeout(() => {
+        formatarLog("[TJES] Conectando ao Portal E-Jud e PJe do Tribunal de Justiça do ES...", 'info');
+      }, 1000);
+
+      setTimeout(() => {
+        formatarLog("[TRT-17] Conectando ao sistema PJe da 17ª Região (Espírito Santo)...", 'info');
+      }, 2200);
+
+      setTimeout(() => {
+        formatarLog("[PESQUISA] Buscando termo exato: 'Rudson Fidellis Nunes'...", 'info');
+        formatarLog("[PESQUISA] Buscando termo de OAB: '35.054/ES' ou '35054'...", 'info');
+      }, 3500);
+
+      setTimeout(() => {
+        formatarLog("[DJEN] Analisando diários de Justiça disponibilizados hoje...", 'info');
+      }, 5000);
+
+      setTimeout(() => {
+        formatarLog("✔ Correspondência TJES localizada no DJEN Caderno Estadual!", 'success');
+        formatarLog("📝 Intimação: 'Processo 0012456-78.2025.8.08.0024. Fica o patrono intimado para apresentar réplica à contestação...'", 'info');
+        formatarLog("🔍 Regex CNJ identificou processo: 0012456-78.2025.8.08.0024", 'success');
+      }, 6500);
+
+      setTimeout(() => {
+        formatarLog("✔ Correspondência PJe TRT-17 localizada (2ª Vara do Trabalho de Vitória)!", 'success');
+        formatarLog("📝 Intimação: 'Ação Trabalhista - Processo 0000345-12.2025.5.17.0002. Manifestar-se sobre cálculos no prazo de 8 dias...'", 'info');
+        formatarLog("🔍 Regex CNJ identificou processo: 0000345-12.2025.5.17.0002", 'success');
+      }, 8200);
+
+      setTimeout(() => {
+        formatarLog("[BANCO] Vinculando processos automaticamente ao cadastro do cliente Vitória Logística e Marcos Aurélio...", 'success');
+        formatarLog("[ALERTA] Prazos adicionados com sucesso ao painel do Dr. Rudson Fidellis Nunes.", 'success');
+      }, 9800);
+
+      setTimeout(() => {
+        // Renderizar intimações na tabela
+        const tabela = document.getElementById('tabela-intimacoes');
+        tabela.innerHTML = `
+          <tr>
+            <td>30/06/2026</td>
+            <td>DJEN / TJES</td>
+            <td>Fica o patrono intimado para apresentar réplica à contestação no prazo de 15 dias...</td>
+            <td><span class="cnj-badge">0012456-78.2025.8.08.0024</span></td>
+            <td><span class="read-badge">Vinculado (Vitória Logística)</span></td>
+          </tr>
+          <tr>
+            <td>30/06/2026</td>
+            <td>PJe TRT-17 (ES)</td>
+            <td>Manifestar-se sobre documentos acostados pela ré pelo prazo improrrogável de 8 dias úteis...</td>
+            <td><span class="cnj-badge">0000345-12.2025.5.17.0002</span></td>
+            <td><span class="read-badge">Vinculado (Marcos Aurélio)</span></td>
+          </tr>
+        `;
+
+        // Atualiza stats
+        document.getElementById('stats-processos').innerText = "2";
+        document.getElementById('count-intimacoes').innerText = "2";
+        
+        formatarLog("🎉 Busca e sincronização concluídas! 2 processos sob controle ativo no Espírito Santo.", 'success');
+        
+        btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar OAB/ES 35.054';
+        btn.disabled = false;
+        syncAtivo = false;
+      }, 11000);
+    }
+  </script>
+</body>
+</html>

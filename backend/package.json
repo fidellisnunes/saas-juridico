@@ -1,0 +1,19 @@
+{
+  "name": "saas-juridico-backend",
+  "version": "1.0.0",
+  "description": "Backend para o Sistema de Gestão e Controle para Escritório de Advocacia",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node dist/tests/run-tests.js",
+    "start": "tsc && node dist/start.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "prisma": "^5.10.0",
+    "typescript": "^5.3.3"
+  }
+}

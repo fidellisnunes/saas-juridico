@@ -1,0 +1,94 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Nota: No SQLite, enums e tipos JSON não são nativos. Mapeamos os enums para String e Json para String
+// e tratamos as regras de validação no código do aplicativo.
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String
+  name              String
+  role              String    @default("ADVOGADO") // ADMIN, ADVOGADO, PARALEGAL, CLIENTE
+  advogado          Advogado?
+  prazosResponsavel Prazo[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model Advogado {
+  id         String      @id @default(uuid())
+  userId     String      @unique
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oab        String
+  uf         String
+  processos  Processo[]  @relation("ProcessoAdvogados")
+  intimacoes Intimacao[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([oab, uf])
+}
+
+model Client {
+  id        String     @id @default(uuid())
+  name      String
+  type      String     // PESSOA_FISICA, PESSOA_JURIDICA
+  cpfCnpj   String     @unique
+  email     String?
+  phone     String?
+  status    String     @default("ATIVO") // ATIVO, ARQUIVADO, SUSPENSO
+  metadata  String?    // Armazenado como string JSON para compatibilidade com SQLite
+  processos Processo[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Processo {
+  id         String      @id @default(uuid())
+  numeroCNJ  String      @unique // Formato: NNNNNNN-DD.AAAA.J.TR.OOOO
+  vara       String
+  comarca    String
+  tribunal   String
+  clienteId  String
+  cliente    Client      @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  advogados  Advogado[]  @relation("ProcessoAdvogados")
+  intimacoes Intimacao[]
+  prazos     Prazo[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Intimacao {
+  id             String    @id @default(uuid())
+  textoCompleto  String
+  fonte          String    @default("DJEN")
+  dataPublicacao DateTime
+  statusLeitura  Boolean   @default(false)
+  processoId     String?
+  processo       Processo? @relation(fields: [processoId], references: [id], onDelete: SetNull)
+  advogadoId     String?
+  advogado       Advogado? @relation(fields: [advogadoId], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now())
+}
+
+model Prazo {
+  id            String   @id @default(uuid())
+  dataInicial   DateTime // Geralmente a data de início da contagem (excluído o dia do começo)
+  dataFinal     DateTime // Data final de vencimento do prazo calculado
+  descricao     String
+  status        String   @default("PENDENTE") // PENDENTE, CONCLUIDO
+  esfera        String   // CIVEL_CPC, TRABALHISTA_CLT
+  processoId    String
+  processo      Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  responsavelId String
+  responsavel   User     @relation(fields: [responsavelId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
