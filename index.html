@@ -209,6 +209,28 @@
     .header-title p {
       color: var(--text-muted);
       font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--color-success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .sync-badge.syncing {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--color-info);
+      border-color: rgba(59, 130, 246, 0.2);
     }
 
     .btn-action {
@@ -549,7 +571,7 @@
       border-radius: 10px;
       font-family: 'Courier New', Courier, monospace;
       padding: 1.25rem;
-      height: 250px;
+      height: 200px;
       overflow-y: auto;
       color: #38BDF8;
       font-size: 0.85rem;
@@ -736,7 +758,10 @@
       <header class="header-bar">
         <div class="header-title">
           <h1>Painel de Controle - Dr. Rudson Fidellis Nunes</h1>
-          <p>Visão de controle processual para OAB/ES 35.054 conectado ao banco de dados Supabase.</p>
+          <p>
+            Visão de controle processual para OAB/ES 35.054 no Supabase. 
+            <span class="sync-badge" id="lbl-sync-status"><i class="fa-solid fa-circle-check"></i> Sincronizado</span>
+          </p>
         </div>
         <button class="btn-action" onclick="switchTab('calculadora')">
           <i class="fa-solid fa-plus"></i> Novo Prazo
@@ -747,7 +772,7 @@
         <div class="stat-card">
           <div>
             <div class="stat-label">Processos em Controle</div>
-            <div class="stat-value" id="stats-processos">2</div>
+            <div class="stat-value" id="stats-processos">0</div>
           </div>
           <div class="stat-icon"><i class="fa-solid fa-briefcase"></i></div>
         </div>
@@ -755,7 +780,7 @@
         <div class="stat-card">
           <div>
             <div class="stat-label">Intimações DJEN / PJe</div>
-            <div class="stat-value" id="stats-intimacoes">2</div>
+            <div class="stat-value" id="stats-intimacoes">0</div>
           </div>
           <div class="stat-icon"><i class="fa-solid fa-envelope-open-text"></i></div>
         </div>
@@ -763,7 +788,7 @@
         <div class="stat-card">
           <div>
             <div class="stat-label">Clientes Cadastrados</div>
-            <div class="stat-value" id="stats-clientes">2</div>
+            <div class="stat-value" id="stats-clientes">0</div>
           </div>
           <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
         </div>
@@ -771,7 +796,7 @@
         <div class="stat-card">
           <div>
             <div class="stat-label">Prazos Ativos</div>
-            <div class="stat-value" id="stats-prazos">2</div>
+            <div class="stat-value" id="stats-prazos">0</div>
           </div>
           <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
         </div>
@@ -794,10 +819,9 @@
                 </tr>
               </thead>
               <tbody id="dashboard-prazos">
-                <!-- Carregado do Banco de Dados Real -->
                 <tr>
                   <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                    Conectando ao banco de dados Supabase...
+                    Nenhum prazo pendente no momento.
                   </td>
                 </tr>
               </tbody>
@@ -809,11 +833,11 @@
           <div class="panel-header">
             <h2 class="panel-title"><i class="fa-solid fa-satellite-dish"></i> Status do Monitor</h2>
           </div>
-          <ul class="result-timeline" id="dashboard-notifications">
+          <ul class="result-timeline">
             <li class="timeline-item" style="padding: 0.5rem 0;">
               <div>
-                <strong>Banco Supabase</strong>
-                <p style="font-size: 0.8rem; color: var(--color-success)"><i class="fa-solid fa-circle-check"></i> Conexão ativa</p>
+                <strong>Banco Supabase (São Paulo)</strong>
+                <p style="font-size: 0.8rem; color: var(--color-success)"><i class="fa-solid fa-circle-check"></i> Conexão ativa (IPv4/6543)</p>
               </div>
             </li>
             <li class="timeline-item" style="padding: 0.5rem 0;">
@@ -825,6 +849,34 @@
           </ul>
         </div>
       </div>
+
+      <!-- NOVA SEÇÃO: ÚLTIMAS INTIMAÇÕES NA TELA INICIAL -->
+      <div class="panel" style="margin-top: 1.5rem;">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="fa-solid fa-envelope-open"></i> Últimas Intimações Identificadas (DJEN / PJe)</h2>
+          <span style="font-size: 0.85rem; color: var(--text-muted)" id="lbl-last-sync-time">Última checagem: --:--</span>
+        </div>
+        <div class="intimacao-table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width: 15%">Data</th>
+                <th style="width: 20%">Fonte / Tribunal</th>
+                <th style="width: 45%">Publicação / Intimação</th>
+                <th style="width: 20%">Processo CNJ</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-intimacoes">
+              <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  Nenhuma intimação carregada do banco.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
     <!-- CRM CLIENTES TAB -->
@@ -840,7 +892,6 @@
       </header>
 
       <div class="client-list" id="lista-clientes-container">
-        <!-- Carregado do Banco de Dados Real -->
         <p style="color: var(--text-muted)">Carregando clientes...</p>
       </div>
     </div>
@@ -853,14 +904,14 @@
           <p>Consulta em tempo real simulando a busca na API pública por "Rudson Fidellis Nunes" e "OAB/ES 35.054".</p>
         </div>
         <button class="btn-action" id="btn-sync" onclick="iniciarSincronizacaoDJEN()">
-          <i class="fa-solid fa-rotate"></i> Sincronizar OAB/ES 35.054
+          <i class="fa-solid fa-rotate"></i> Forçar Sincronização Manual
         </button>
       </header>
 
       <div class="panel">
         <div class="djen-header">
           <div class="panel-title">
-            <span class="pulse-dot"></span> Terminal de Consulta de Intimações (PJe / DJEN)
+            <span class="pulse-dot"></span> Terminal de Consulta de Intimações (PJe / DataJud)
           </div>
           <span style="font-size: 0.85rem; color: var(--text-muted)">Integrações: <strong>TJES & TRT-17 Online</strong></span>
         </div>
@@ -868,13 +919,13 @@
         <div class="log-terminal" id="terminal-logs">
           <div class="log-line info">[SISTEMA] Conectado ao servidor Render backend...</div>
           <div class="log-line info">[SISTEMA] Credenciais do Advogado: Rudson Fidellis Nunes (OAB/ES 35.054)</div>
-          <div class="log-line info">[SISTEMA] Pronto para sincronizar.</div>
+          <div class="log-line info">[SISTEMA] Sincronização automática em background configurada.</div>
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-header">
-          <h2 class="panel-title"><i class="fa-solid fa-envelope-open"></i> Intimações Identificadas no Banco</h2>
+          <h2 class="panel-title"><i class="fa-solid fa-envelope-open"></i> Histórico de Intimações Salvas</h2>
         </div>
         <div class="intimacao-table-container">
           <table class="table">
@@ -888,10 +939,9 @@
               </tr>
             </thead>
             <tbody id="tabela-intimacoes">
-              <!-- Populado dinamicamente -->
               <tr>
                 <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                  Nenhuma intimação carregada do banco. Clique em "Sincronizar OAB/ES 35.054" acima.
+                  Nenhuma intimação carregada do banco.
                 </td>
               </tr>
             </tbody>
@@ -1058,7 +1108,7 @@
     // COMUNICAÇÃO COM O BACKEND REAL (RENDER + SUPABASE)
     // --------------------------------------------------
 
-    // Carrega dados da Dashboard (estatísticas e tabela de prazos do Supabase)
+    // Carrega dados da Dashboard (estatísticas, tabela de prazos e tabela de intimações do Supabase)
     async function carregarDadosDashboard() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/dashboard`);
@@ -1072,33 +1122,71 @@
           document.getElementById('stats-prazos').innerText = result.stats.totalPrazos;
 
           // Atualiza a tabela de prazos
-          const tbody = document.getElementById('dashboard-prazos');
-          tbody.innerHTML = "";
+          const tbodyPrazos = document.getElementById('dashboard-prazos');
+          tbodyPrazos.innerHTML = "";
 
           if (result.prazosUrgentes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhum prazo pendente no momento.</td></tr>`;
-            return;
+            tbodyPrazos.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nenhum prazo pendente no momento.</td></tr>`;
+          } else {
+            result.prazosUrgentes.forEach(prazo => {
+              const tr = document.createElement('tr');
+              const [ano, mes, dia] = prazo.dataFinal.split('-');
+              const dataVencFormatada = `${dia}/${mes}/${ano}`;
+
+              tr.innerHTML = `
+                <td><span class="cnj-badge">${prazo.processo}</span></td>
+                <td>${prazo.descricao}</td>
+                <td><strong style="color: ${prazo.esfera.includes('Cível') ? 'var(--gold-primary)' : '#60A5FA'}">${prazo.esfera}</strong></td>
+                <td><span style="color: var(--color-warning); font-weight: 600;">${dataVencFormatada}</span></td>
+                <td><span class="read-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--color-warning)">Pendente</span></td>
+              `;
+              tbodyPrazos.appendChild(tr);
+            });
           }
 
-          result.prazosUrgentes.forEach(prazo => {
-            const tr = document.createElement('tr');
-            
-            // Formatador de data local
-            const [ano, mes, dia] = prazo.dataFinal.split('-');
-            const dataVencFormatada = `${dia}/${mes}/${ano}`;
-
-            tr.innerHTML = `
-              <td><span class="cnj-badge">${prazo.processo}</span></td>
-              <td>${prazo.descricao}</td>
-              <td><strong style="color: ${prazo.esfera.includes('Cível') ? 'var(--gold-primary)' : '#60A5FA'}">${prazo.esfera}</strong></td>
-              <td><span style="color: var(--color-warning); font-weight: 600;">${dataVencFormatada}</span></td>
-              <td><span class="read-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--color-warning)">Pendente</span></td>
-            `;
-            tbody.appendChild(tr);
-          });
+          // Carrega as últimas intimações na dashboard
+          await carregarUltimasIntimacoesDashboard();
         }
       } catch (error) {
         console.error("Erro ao carregar dados da dashboard:", error);
+      }
+    }
+
+    // Busca intimações no banco e renderiza na dashboard
+    async function carregarUltimasIntimacoesDashboard() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/intimacoes`);
+        const result = await response.json();
+
+        if (result.success) {
+          const tbodyIntimacoes = document.getElementById('dashboard-intimacoes');
+          tbodyIntimacoes.innerHTML = "";
+
+          // Exibe apenas as 5 mais recentes na dashboard
+          const maisRecentes = result.data.slice(0, 5);
+
+          if (maisRecentes.length === 0) {
+            tbodyIntimacoes.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nenhuma intimação localizada no banco. A sincronização automática buscará no DJEN/CNJ.</td></tr>`;
+            return;
+          }
+
+          maisRecentes.forEach(item => {
+            const tr = document.createElement('tr');
+            const dataPub = new Date(item.dataPublicacao).toLocaleDateString('pt-BR');
+            tr.innerHTML = `
+              <td><strong>${dataPub}</strong></td>
+              <td><span style="color: var(--gold-primary); font-weight: 500;"><i class="fa-solid fa-scale-balanced"></i> ${item.fonte}</span></td>
+              <td style="max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.textoCompleto}">${item.textoCompleto}</td>
+              <td><span class="cnj-badge">${item.processo ? item.processo.numeroCNJ : 'Sem Vínculo'}</span></td>
+            `;
+            tbodyIntimacoes.appendChild(tr);
+          });
+
+          // Atualiza a hora da última checagem
+          document.getElementById('lbl-last-sync-time').innerText = `Última checagem: ${new Date().toLocaleTimeString('pt-BR')}`;
+        }
+      } catch (error) {
+        console.error("Erro ao carregar últimas intimações na dashboard:", error);
       }
     }
 
@@ -1111,6 +1199,11 @@
         if (result.success) {
           const container = document.getElementById('lista-clientes-container');
           container.innerHTML = "";
+
+          if (result.data.length === 0) {
+            container.innerHTML = `<p style="color: var(--text-muted); grid-column: span 3; text-align: center; padding: 3rem;">Nenhum cliente cadastrado no banco de dados.</p>`;
+            return;
+          }
 
           result.data.forEach(cliente => {
             const card = document.createElement('div');
@@ -1141,7 +1234,7 @@
       }
     }
 
-    // Carrega tabela de intimações
+    // Carrega tabela completa de intimações (na aba de monitor)
     async function carregarIntimacoesTabela() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/intimacoes`);
@@ -1152,7 +1245,7 @@
           tbody.innerHTML = "";
 
           if (result.data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhuma intimação capturada ainda. Clique em Sincronizar!</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma intimação localizada no histórico.</td></tr>`;
             return;
           }
 
@@ -1170,58 +1263,68 @@
           });
         }
       } catch (error) {
-        console.error("Erro ao carregar intimações:", error);
+        console.error("Erro ao carregar intimações na tabela:", error);
       }
     }
 
     // --------------------------------------------------
-    // DISPARAR ACIONADOR DE SINCRONIZAÇÃO DO DJEN
+    // SINCRONIZAÇÃO AUTOMÁTICA EM SEGUNDO PLANO
     // --------------------------------------------------
     let syncAtivo = false;
 
-    async function iniciarSincronizacaoDJEN() {
+    async function rodarSincronizacaoAutomatica() {
       if (syncAtivo) return;
       syncAtivo = true;
-      
-      const btn = document.getElementById('btn-sync');
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
-      btn.disabled = true;
 
-      formatarLog("[ROBÔ] Solicitando varredura no servidor Render...", 'info');
+      const badge = document.getElementById('lbl-sync-status');
+      badge.className = "sync-badge syncing";
+      badge.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando com o CNJ...';
+
+      formatarLog("[AUTO-ROBÔ] Iniciando varredura em background no CNJ/DJEN...", 'info');
       
       try {
         const response = await fetch(`${BACKEND_URL}/sync`);
         const result = await response.json();
 
         if (result.success) {
-          formatarLog("[ROBÔ] Render conectou ao DJEN e PJe com sucesso.", 'success');
-          formatarLog(`[ROBÔ] Processadas ${result.totalProcessadas} intimações do Espírito Santo.`, 'success');
+          formatarLog(`[AUTO-ROBÔ] Sincronização finalizada com sucesso. Processadas ${result.totalProcessadas} intimações do dia.`, 'success');
           
-          result.intimacoes.forEach(item => {
-            formatarLog(`✔ Identificada OAB/ES 35.054 no diário de ${item.data}.`, 'success');
-            formatarLog(`🔍 Regex vinculou intimação ao Processo CNJ: ${item.processo}`, 'info');
-          });
+          if (result.intimacoes.length > 0) {
+            result.intimacoes.forEach(item => {
+              formatarLog(`✔ Capturada intimação real do processo ${item.processo}`, 'success');
+            });
+          } else {
+            formatarLog(`[AUTO-ROBÔ] Nenhuma nova intimação pendente para a OAB/ES 35.054.`, 'info');
+          }
 
-          // Recarregar os dados na tela
-          await carregarIntimacoesTabela();
+          // Recarregar os dados do banco na tela
           await carregarDadosDashboard();
+          await carregarIntimacoesTabela();
 
-          formatarLog("🎉 Integração finalizada! Os prazos correspondentes já foram computados.", 'success');
+          badge.className = "sync-badge";
+          badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Sincronizado';
         } else {
-          formatarLog("❌ Erro na resposta da Render: " + result.error, 'warn');
+          formatarLog("❌ Falha na resposta da Render: " + result.error, 'warn');
+          badge.className = "sync-badge";
+          badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Erro de Sinc.';
         }
       } catch (error) {
-        formatarLog("❌ Falha na conexão de rede com a API da Render.", 'warn');
-        console.error(error);
+        formatarLog("❌ Falha de conexão ao sincronizar automaticamente.", 'warn');
+        badge.className = "sync-badge";
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Erro de Rede';
       } finally {
-        btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar OAB/ES 35.054';
-        btn.disabled = false;
         syncAtivo = false;
       }
     }
 
+    // Mantém a sincronização manual disponível se o usuário quiser forçar
+    async function iniciarSincronizacaoDJEN() {
+      await rodarSincronizacaoAutomatica();
+    }
+
     function formatarLog(texto, tipo = 'info') {
       const terminal = document.getElementById('terminal-logs');
+      if (!terminal) return;
       const div = document.createElement('div');
       div.className = `log-line ${tipo}`;
       div.innerText = `[${new Date().toLocaleTimeString('pt-BR')}] ${texto}`;
@@ -1382,8 +1485,15 @@
       return `${y}-${m}-${d}`;
     }
 
-    // Inicialização ao carregar a página
+    // Inicialização ao carregar a página:
+    // 1. Carrega os dados salvos no banco de imediato
     carregarDadosDashboard();
+
+    // 2. Dispara a sincronização real com o CNJ automaticamente em background
+    // (Isso atualiza os dados na tela logo após a abertura do site, sem precisar clicar)
+    setTimeout(() => {
+      rodarSincronizacaoAutomatica();
+    }, 1500);
   </script>
 </body>
 </html>
