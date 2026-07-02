@@ -32,8 +32,7 @@ export class DjenService {
     if (apiKey) {
       console.log(`[CNJ/DataJud] Realizando consulta real na API pública do DataJud para TJES...`);
       try {
-        // Exemplo de chamada para a API pública do DataJud (tribunal TJES)
-        // O endpoint oficial do DataJud segue o padrão: https://api-publica.datajud.cnj.jus.br/api_publica_<tribunal>/_search
+        // Consulta para o tribunal TJES
         const response = await fetch('https://api-publica.datajud.cnj.jus.br/api_publica_tjes/_search', {
           method: 'POST',
           headers: {
@@ -57,7 +56,7 @@ export class DjenService {
                 ]
               }
             },
-            size: 10,
+            size: 15,
             sort: [{ "dataHoraUltimaAtualizacao": { "order": "desc" } }]
           })
         });
@@ -72,7 +71,7 @@ export class DjenService {
         console.log(`[CNJ/DataJud] Retornados ${hits.length} resultados reais.`);
 
         // Mapeia os hits do ElasticSearch do CNJ para o formato do nosso sistema
-        return hits.map((hit: any, index: number) => {
+        const resultadosReais = hits.map((hit: any, index: number) => {
           const source = hit._source || {};
           const cnj = source.numeroProcesso;
           const tribunal = source.tribunal || 'TJES';
@@ -90,12 +89,16 @@ export class DjenService {
           };
         });
 
+        return resultadosReais;
+
       } catch (error) {
-        console.error(`[CNJ/DataJud] Falha na consulta real. Revertendo para simulação:`, error);
+        console.error(`[CNJ/DataJud] Falha na consulta real ao DataJud:`, error);
+        // Retorna array vazio em caso de erro na consulta real, para NUNCA gerar dados fictícios se a chave estiver configurada
+        return [];
       }
     }
 
-    // Fallback/Simulação de dados (se não houver API Key configurada)
+    // Se NÃO houver DATAJUD_API_KEY configurada, roda o fallback simulado para testes locais
     console.log(`[DJEN/PJe] Simulando diários de TJES e TRT17 para o Dr. Rudson Nunes...`);
     return [
       {
