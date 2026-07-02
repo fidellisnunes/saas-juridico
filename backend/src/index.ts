@@ -191,7 +191,7 @@ app.get('/sync', async (req: Request, res: Response) => {
 
     // Criar prazos automáticos no banco baseando-se nas intimações reais vinculadas
     for (const item of intimacoesHojes) {
-      if (item.processoId && item.advogadoId) {
+      if (item.processoId && item.advogadoId && item.advogado) {
         // Verifica se já não foi criado um prazo para esta intimação
         const existePrazo = await prisma.prazo.findFirst({
           where: {
