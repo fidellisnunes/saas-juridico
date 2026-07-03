@@ -82,8 +82,43 @@
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      padding: 2rem 1.5rem;
+      padding: 2rem 1.25rem;
       flex-shrink: 0;
+      transition: var(--transition-smooth);
+      position: relative;
+    }
+
+    /* Estado Retraído */
+    .sidebar.collapsed {
+      width: 78px;
+      padding: 2rem 0.5rem;
+    }
+
+    /* Botão de Alternância (Toggle) */
+    .toggle-sidebar-btn {
+      position: absolute;
+      top: 1.75rem;
+      right: -14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: #060913;
+      border: 1px solid var(--border-color);
+      color: var(--gold-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: var(--transition-smooth);
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .toggle-sidebar-btn:hover {
+      background-color: rgba(197, 168, 128, 0.15);
+      color: var(--text-main);
+      transform: scale(1.1);
     }
 
     .brand {
@@ -91,6 +126,13 @@
       align-items: center;
       gap: 0.75rem;
       margin-bottom: 3rem;
+      transition: var(--transition-smooth);
+    }
+
+    .sidebar.collapsed .brand {
+      justify-content: center;
+      gap: 0;
+      padding-left: 0.25rem;
     }
 
     .brand-logo {
@@ -98,6 +140,7 @@
       background: var(--gold-gradient);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      transition: var(--transition-smooth);
     }
 
     .brand-title {
@@ -105,6 +148,16 @@
       font-size: 1.25rem;
       font-weight: 600;
       letter-spacing: 1px;
+      transition: opacity 0.25s ease, width 0.25s ease, margin 0.25s ease;
+      opacity: 1;
+      white-space: nowrap;
+    }
+
+    .sidebar.collapsed .brand-title {
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      overflow: hidden;
     }
 
     .menu-list {
@@ -125,12 +178,33 @@
       text-decoration: none;
       font-weight: 500;
       transition: var(--transition-smooth);
+      overflow: hidden;
+    }
+
+    .sidebar.collapsed .menu-item {
+      justify-content: center;
+      padding: 0.85rem 0;
+      gap: 0;
     }
 
     .menu-item i {
       font-size: 1.1rem;
       width: 20px;
       text-align: center;
+      flex-shrink: 0;
+    }
+
+    .menu-item span {
+      transition: opacity 0.25s ease, width 0.25s ease;
+      opacity: 1;
+      white-space: nowrap;
+    }
+
+    .sidebar.collapsed .menu-item span {
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      overflow: hidden;
     }
 
     .menu-item:hover, .menu-item.active {
@@ -140,6 +214,13 @@
       padding-left: calc(1rem - 3px);
     }
 
+    .sidebar.collapsed .menu-item:hover, 
+    .sidebar.collapsed .menu-item.active {
+      border-left: none;
+      padding-left: 0;
+      background-color: rgba(197, 168, 128, 0.15);
+    }
+
     .sidebar-footer {
       margin-top: auto;
       padding-top: 1.5rem;
@@ -147,6 +228,12 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
+      transition: var(--transition-smooth);
+    }
+
+    .sidebar.collapsed .sidebar-footer {
+      justify-content: center;
+      gap: 0;
     }
 
     .user-avatar {
@@ -160,12 +247,22 @@
       font-weight: 600;
       color: var(--bg-dark);
       border: 2px solid var(--border-color);
+      flex-shrink: 0;
     }
 
     .user-info {
       display: flex;
       flex-direction: column;
       width: 170px;
+      overflow: hidden;
+      transition: opacity 0.25s ease, width 0.25s ease;
+      opacity: 1;
+    }
+
+    .sidebar.collapsed .user-info {
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
       overflow: hidden;
     }
 
@@ -710,7 +807,12 @@
 <body>
 
   <!-- SIDEBAR DA APLICAÇÃO -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="app-sidebar">
+    <!-- Botão de Alternância Retrátil -->
+    <button class="toggle-sidebar-btn" id="btn-toggle-sidebar" title="Recolher/Expandir menu">
+      <i class="fa-solid fa-chevron-left" id="toggle-icon"></i>
+    </button>
+
     <div class="brand">
       <i class="fa-solid fa-scale-balanced brand-logo"></i>
       <span class="brand-title">SaaS Jurídico</span>
@@ -720,22 +822,22 @@
       <ul class="menu-list">
         <li>
           <a href="#" class="menu-item active" data-tab="dashboard">
-            <i class="fa-solid fa-chart-line"></i> Dashboard
+            <i class="fa-solid fa-chart-line"></i> <span>Dashboard</span>
           </a>
         </li>
         <li>
           <a href="#" class="menu-item" data-tab="clientes">
-            <i class="fa-solid fa-folder-open"></i> CRM Clientes
+            <i class="fa-solid fa-folder-open"></i> <span>CRM Clientes</span>
           </a>
         </li>
         <li>
           <a href="#" class="menu-item" data-tab="djen">
-            <i class="fa-solid fa-satellite-dish"></i> Monitor DJEN e PJe
+            <i class="fa-solid fa-satellite-dish"></i> <span>Monitor DJEN e PJe</span>
           </a>
         </li>
         <li>
           <a href="#" class="menu-item" data-tab="calculadora">
-            <i class="fa-solid fa-calculator"></i> Calculadora Prazos
+            <i class="fa-solid fa-calculator"></i> <span>Calculadora Prazos</span>
           </a>
         </li>
       </ul>
@@ -1074,6 +1176,32 @@
   <script>
     // URL pública da sua hospedagem Render
     const BACKEND_URL = "https://saas-juridico-backend.onrender.com";
+
+    // --------------------------------------------------
+    // LOGICA DA BARRA LATERAL RETRÁTIL
+    // --------------------------------------------------
+    const sidebar = document.getElementById('app-sidebar');
+    const toggleBtn = document.getElementById('btn-toggle-sidebar');
+    const toggleIcon = document.getElementById('toggle-icon');
+
+    // Recupera o estado salvo no navegador
+    const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    if (isCollapsed) {
+      sidebar.classList.add('collapsed');
+      toggleIcon.className = 'fa-solid fa-chevron-right';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      const collapsed = sidebar.classList.contains('collapsed');
+      localStorage.setItem('sidebar-collapsed', collapsed);
+      
+      if (collapsed) {
+        toggleIcon.className = 'fa-solid fa-chevron-right';
+      } else {
+        toggleIcon.className = 'fa-solid fa-chevron-left';
+      }
+    });
 
     // --------------------------------------------------
     // CONTROLE DE NAVEGAÇÃO ENTRE ABAS
