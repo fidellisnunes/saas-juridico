@@ -23,15 +23,17 @@ model User {
 }
 
 model Advogado {
-  id         String      @id @default(uuid())
-  userId     String      @unique
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  oab        String
-  uf         String
-  processos  Processo[]  @relation("ProcessoAdvogados")
-  intimacoes Intimacao[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oab          String
+  uf           String
+  processos    Processo[]    @relation("ProcessoAdvogados")
+  intimacoes   Intimacao[]
+  tarefas      Tarefa[]
+  compromissos Compromisso[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@unique([oab, uf])
 }
@@ -51,18 +53,20 @@ model Client {
 }
 
 model Processo {
-  id         String      @id @default(uuid())
-  numeroCNJ  String      @unique // Formato: NNNNNNN-DD.AAAA.J.TR.OOOO
-  vara       String
-  comarca    String
-  tribunal   String
-  clienteId  String
-  cliente    Client      @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  advogados  Advogado[]  @relation("ProcessoAdvogados")
-  intimacoes Intimacao[]
-  prazos     Prazo[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String        @id @default(uuid())
+  numeroCNJ    String        @unique // Formato: NNNNNNN-DD.AAAA.J.TR.OOOO
+  vara         String
+  comarca      String
+  tribunal     String
+  clienteId    String
+  cliente      Client        @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  advogados    Advogado[]    @relation("ProcessoAdvogados")
+  intimacoes   Intimacao[]
+  prazos       Prazo[]
+  tarefas      Tarefa[]
+  compromissos Compromisso[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Intimacao {
@@ -91,4 +95,34 @@ model Prazo {
   responsavel   User     @relation(fields: [responsavelId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Tarefa {
+  id             String    @id @default(uuid())
+  titulo         String
+  descricao      String?
+  status         String    @default("PENDENTE") // PENDENTE, CONCLUIDA
+  dataVencimento DateTime
+  tipo           String    // CUMPRIMENTO_PRAZO, CONTATO_CLIENTE, DILIGENCIA, OUTROS
+  processoId     String?
+  processo       Processo? @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  advogadoId     String
+  advogado       Advogado  @relation(fields: [advogadoId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Compromisso {
+  id             String    @id @default(uuid())
+  titulo         String
+  descricao      String?
+  dataHora       DateTime
+  local          String?
+  tipo           String    // AUDIENCIA, REUNIAO, OUTROS
+  processoId     String?
+  processo       Processo? @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  advogadoId     String
+  advogado       Advogado  @relation(fields: [advogadoId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

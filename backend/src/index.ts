@@ -1,7 +1,6 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { DjenService } from './services/djenService';
-import { calcularPrazo } from './utils/calcularPrazo';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,7 +13,6 @@ const djen = new DjenService(prisma);
 app.use(express.json());
 
 // Middleware simples para habilitar CORS (Cross-Origin Resource Sharing)
-// Necessário para que a Vercel consiga fazer requisições para a Render com segurança.
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
@@ -40,12 +38,14 @@ app.get('/api/dashboard', async (req: Request, res: Response) => {
     const totalProcessos = await prisma.processo.count();
     const totalIntimacoes = await prisma.intimacao.count();
     const totalClientes = await prisma.client.count();
-    const totalPrazos = await prisma.prazo.count({ where: { status: 'PENDENTE' } });
+    
+    // Contar tarefas pendentes
+    const totalPrazos = await prisma.tarefa.count({ where: { status: 'PENDENTE' } });
 
-    // Pega os prazos de maior urgência ordenados pela data final
-    const prazosUrgentes = await prisma.prazo.findMany({
+    // Buscar tarefas pendentes ordenadas pela data de vencimento mais próxima
+    const tarefasUrgentes = await prisma.tarefa.findMany({
       where: { status: 'PENDENTE' },
-      orderBy: { dataFinal: 'asc' },
+      orderBy: { dataVencimento: 'asc' },
       take: 5,
       include: {
         processo: true
@@ -60,12 +60,14 @@ app.get('/api/dashboard', async (req: Request, res: Response) => {
         totalClientes,
         totalPrazos
       },
-      prazosUrgentes: prazosUrgentes.map(item => ({
+      prazosUrgentes: tarefasUrgentes.map(item => ({
         id: item.id,
-        processo: item.processo.numeroCNJ,
-        descricao: item.descricao,
-        esfera: item.esfera === 'CIVEL_CPC' ? 'Cível (CPC)' : 'Trabalhista (CLT)',
-        dataFinal: item.dataFinal.toISOString().split('T')[0]
+        processo: item.processo?.numeroCNJ || 'Sem Processo',
+        descricao: item.titulo + (item.descricao ? ` (${item.descricao})` : ''),
+        esfera: item.tipo === 'CUMPRIMENTO_PRAZO' ? 'Prazo Processual' : 
+                item.tipo === 'CONTATO_CLIENTE' ? 'Contato Cliente' : 
+                item.tipo === 'DILIGENCIA' ? 'Diligência' : 'Tarefa Geral',
+        dataFinal: item.dataVencimento.toISOString().split('T')[0]
       }))
     });
   } catch (error: any) {
@@ -103,69 +105,138 @@ app.get('/api/intimacoes', async (req: Request, res: Response) => {
   }
 });
 
-// Endpoint para calcular e criar prazos manualmente no Supabase
-app.post('/api/prazos', async (req: Request, res: Response) => {
-  const { dataPublicacao, dias, esfera, descricao, processoCNJ, responsavelEmail } = req.body;
+// --------------------------------------------------
+// ROTAS PARA TAREFAS
+// --------------------------------------------------
 
-  if (!dataPublicacao || !dias || !esfera || !processoCNJ) {
-    return res.status(400).json({ success: false, error: 'Parâmetros incompletos.' });
-  }
-
+// Listar todas as tarefas
+app.get('/api/tarefas', async (req: Request, res: Response) => {
   try {
-    // Localizar processo
-    const processo = await prisma.processo.findUnique({
-      where: { numeroCNJ: processoCNJ }
+    const data = await prisma.tarefa.findMany({
+      include: { processo: true },
+      orderBy: { dataVencimento: 'asc' }
     });
-
-    if (!processo) {
-      return res.status(404).json({ success: false, error: 'Processo não encontrado.' });
-    }
-
-    // Localizar usuário responsável (ou default)
-    const user = await prisma.user.findFirst({
-      where: responsavelEmail ? { email: responsavelEmail } : {}
-    });
-
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'Responsável não encontrado.' });
-    }
-
-    // Calcular data de vencimento
-    // Podem ser passados feriados no body (opcional)
-    const feriadosDatas = req.body.feriados ? req.body.feriados.map((d: string) => new Date(d + 'T12:00:00')) : [];
-    const dataInicialValida = new Date(dataPublicacao + 'T12:00:00');
-    const dataVencimento = calcularPrazo(dataInicialValida, parseInt(dias, 10), esfera, feriadosDatas);
-
-    // Gravar o prazo no banco de dados Supabase
-    const novoPrazo = await prisma.prazo.create({
-      data: {
-        dataInicial: dataInicialValida,
-        dataFinal: dataVencimento,
-        descricao: descricao || 'Prazo Processual',
-        status: 'PENDENTE',
-        esfera: esfera === 'CPC' ? 'CIVEL_CPC' : 'TRABALHISTA_CLT',
-        processoId: processo.id,
-        responsavelId: user.id
-      }
-    });
-
-    res.json({
-      success: true,
-      data: {
-        id: novoPrazo.id,
-        dataInicial: novoPrazo.dataInicial.toISOString().split('T')[0],
-        dataFinal: novoPrazo.dataFinal.toISOString().split('T')[0],
-        descricao: novoPrazo.descricao,
-        vencimento: novoPrazo.dataFinal.toLocaleDateString('pt-BR')
-      }
-    });
-
+    res.json({ success: true, data });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Endpoint para acionar a sincronização do DJEN / PJe
+// Criar uma nova tarefa (manual ou a partir de intimação)
+app.post('/api/tarefas', async (req: Request, res: Response) => {
+  const { titulo, descricao, dataVencimento, tipo, processoCNJ } = req.body;
+
+  if (!titulo || !dataVencimento || !tipo) {
+    return res.status(400).json({ success: false, error: 'Parâmetros obrigatórios incompletos.' });
+  }
+
+  try {
+    const advogado = await prisma.advogado.findFirst();
+    if (!advogado) {
+      return res.status(404).json({ success: false, error: 'Nenhum advogado cadastrado no sistema.' });
+    }
+
+    let processoId = null;
+    if (processoCNJ) {
+      const proc = await prisma.processo.findUnique({
+        where: { numeroCNJ: processoCNJ }
+      });
+      if (proc) processoId = proc.id;
+    }
+
+    const tarefa = await prisma.tarefa.create({
+      data: {
+        titulo,
+        descricao,
+        dataVencimento: new Date(dataVencimento + 'T12:00:00'),
+        tipo,
+        processoId,
+        advogadoId: advogado.id
+      }
+    });
+
+    res.json({ success: true, data: tarefa });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Atualizar status de uma tarefa (concluir / reabrir)
+app.put('/api/tarefas/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const tarefa = await prisma.tarefa.update({
+      where: { id },
+      data: { status }
+    });
+    res.json({ success: true, data: tarefa });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --------------------------------------------------
+// ROTAS PARA COMPROMISSOS
+// --------------------------------------------------
+
+// Listar todos os compromissos
+app.get('/api/compromissos', async (req: Request, res: Response) => {
+  try {
+    const data = await prisma.compromisso.findMany({
+      include: { processo: true },
+      orderBy: { dataHora: 'asc' }
+    });
+    res.json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Criar um novo compromisso
+app.post('/api/compromissos', async (req: Request, res: Response) => {
+  const { titulo, descricao, dataHora, local, tipo, processoCNJ } = req.body;
+
+  if (!titulo || !dataHora || !tipo) {
+    return res.status(400).json({ success: false, error: 'Parâmetros obrigatórios incompletos.' });
+  }
+
+  try {
+    const advogado = await prisma.advogado.findFirst();
+    if (!advogado) {
+      return res.status(404).json({ success: false, error: 'Nenhum advogado cadastrado no sistema.' });
+    }
+
+    let processoId = null;
+    if (processoCNJ) {
+      const proc = await prisma.processo.findUnique({
+        where: { numeroCNJ: processoCNJ }
+      });
+      if (proc) processoId = proc.id;
+    }
+
+    const compromisso = await prisma.compromisso.create({
+      data: {
+        titulo,
+        descricao,
+        dataHora: new Date(dataHora),
+        local,
+        tipo,
+        processoId,
+        advogadoId: advogado.id
+      }
+    });
+
+    res.json({ success: true, data: compromisso });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --------------------------------------------------
+// ROTA DE SINCRONIZAÇÃO DJEN / DATAJUD
+// --------------------------------------------------
 app.get('/sync', async (req: Request, res: Response) => {
   console.log('🤖 [ROBÔ] Sincronização acionada via API HTTP GET /sync...');
   
@@ -189,46 +260,12 @@ app.get('/sync', async (req: Request, res: Response) => {
       }
     });
 
-    // Criar prazos automáticos no banco baseando-se nas intimações reais vinculadas
-    for (const item of intimacoesHojes) {
-      if (item.processoId && item.advogadoId && item.advogado) {
-        // Verifica se já não foi criado um prazo para esta intimação
-        const existePrazo = await prisma.prazo.findFirst({
-          where: {
-            processoId: item.processoId,
-            descricao: { contains: 'Intimação' }
-          }
-        });
-
-        if (!existePrazo) {
-          // Extrai esfera e dias aproximados do texto da intimação
-          const texto = item.textoCompleto.toLowerCase();
-          const esfera: 'CPC' | 'CLT' = texto.includes('trabalhista') || texto.includes('trt') ? 'CLT' : 'CPC';
-          const diasMatch = texto.match(/prazo de\s+(\d+)\s+dias/);
-          const dias = diasMatch ? parseInt(diasMatch[1], 10) : 15; // default 15 dias cíveis
-
-          const dataFinalCalculada = calcularPrazo(item.dataPublicacao, dias, esfera, []);
-          
-          await prisma.prazo.create({
-            data: {
-              dataInicial: item.dataPublicacao,
-              dataFinal: dataFinalCalculada,
-              descricao: `Prazo automático: ${item.textoCompleto.substring(0, 50)}...`,
-              status: 'PENDENTE',
-              esfera: esfera === 'CPC' ? 'CIVEL_CPC' : 'TRABALHISTA_CLT',
-              processoId: item.processoId,
-              responsavelId: item.advogado.userId
-            }
-          });
-        }
-      }
-    }
-
     res.json({
       success: true,
       message: 'Sincronização executada com sucesso.',
       totalProcessadas: publicacoes.length,
       intimacoes: intimacoesHojes.map(item => ({
+        id: item.id,
         data: item.dataPublicacao.toISOString().split('T')[0],
         fonte: item.fonte,
         texto: item.textoCompleto,
