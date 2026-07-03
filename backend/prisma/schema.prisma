@@ -53,20 +53,27 @@ model Client {
 }
 
 model Processo {
-  id           String        @id @default(uuid())
-  numeroCNJ    String        @unique // Formato: NNNNNNN-DD.AAAA.J.TR.OOOO
-  vara         String
-  comarca      String
-  tribunal     String
-  clienteId    String
-  cliente      Client        @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  advogados    Advogado[]    @relation("ProcessoAdvogados")
-  intimacoes   Intimacao[]
-  prazos       Prazo[]
-  tarefas      Tarefa[]
-  compromissos Compromisso[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                  String        @id @default(uuid())
+  numeroCNJ           String        @unique // Formato: NNNNNNN-DD.AAAA.J.TR.OOOO
+  vara                String
+  comarca             String
+  tribunal            String
+  clienteId           String
+  cliente             Client        @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  advogados           Advogado[]    @relation("ProcessoAdvogados")
+  intimacoes          Intimacao[]
+  prazos              Prazo[]
+  tarefas             Tarefa[]
+  compromissos        Compromisso[]
+  classe              String?       // ex: ATSum
+  poloAtivo           String?       // Reclamante(s)
+  poloPassivo         String?       // Reclamada(s)
+  clienteRepresentado String?       // RECLAMANTE ou RECLAMADA
+  estagio             String?       // Conhecimento, Recurso, Execução, Acordo
+  distribuicao        DateTime?     // Data de distribuição
+  movimentacoes       String?       // Armazenado como texto ou string JSON
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 }
 
 model Intimacao {
