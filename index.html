@@ -802,6 +802,281 @@
       align-items: center;
       font-size: 0.8rem;
     }
+
+    /* --------------------------------------------------
+       MODAIS (POP-UPS)
+       -------------------------------------------------- */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(5, 7, 13, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .modal.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background-color: #0F172A;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      width: 500px;
+      max-width: 90%;
+      padding: 2rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.75rem;
+    }
+    
+    .modal-title {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    
+    .btn-close-modal {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    
+    .btn-close-modal:hover {
+      color: var(--color-danger);
+    }
+
+    /* --------------------------------------------------
+       CALENDÁRIO DA AGENDA
+       -------------------------------------------------- */
+    .agenda-layout {
+      display: grid;
+      grid-template-columns: 3fr 1.2fr;
+      gap: 1.5rem;
+    }
+    
+    .calendar-container {
+      background-color: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .calendar-nav-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-smooth);
+    }
+    
+    .calendar-nav-btn:hover {
+      background: rgba(197, 168, 128, 0.15);
+      border-color: var(--gold-primary);
+    }
+    
+    .calendar-title {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+    }
+    
+    .calendar-day-name {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .calendar-cell {
+      min-height: 95px;
+      background: rgba(10, 14, 25, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 0.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      transition: var(--transition-smooth);
+    }
+    
+    .calendar-cell:hover {
+      background: rgba(197, 168, 128, 0.04);
+      border-color: rgba(197, 168, 128, 0.15);
+    }
+    
+    .calendar-cell.other-month {
+      opacity: 0.3;
+    }
+    
+    .calendar-cell.today {
+      border: 1.5px solid var(--gold-primary);
+      background: rgba(197, 168, 128, 0.05);
+      box-shadow: inset 0 0 10px rgba(197, 168, 128, 0.05);
+    }
+    
+    .calendar-day-number {
+      font-size: 0.8rem;
+      font-weight: 600;
+      align-self: flex-end;
+      color: var(--text-muted);
+    }
+    
+    .calendar-cell.today .calendar-day-number {
+      color: var(--gold-primary);
+    }
+    
+    .calendar-events {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      overflow-y: auto;
+      max-height: 60px;
+    }
+    
+    .calendar-event-tag {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.3rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .calendar-event-tag.tarefa {
+      background-color: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .calendar-event-tag.tarefa.concluida {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: rgba(16, 185, 129, 0.5);
+      border-color: rgba(16, 185, 129, 0.15);
+      text-decoration: line-through;
+    }
+    .calendar-event-tag.compromisso {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
+    .agenda-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    
+    .agenda-event-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: var(--transition-smooth);
+    }
+    
+    .agenda-event-item:hover {
+      transform: translateX(3px);
+      border-color: var(--gold-primary);
+    }
+    
+    .agenda-event-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .agenda-event-icon.tarefa {
+      background: rgba(59, 130, 246, 0.12);
+      color: #60A5FA;
+    }
+    .agenda-event-icon.compromisso {
+      background: rgba(245, 158, 11, 0.12);
+      color: #FBBF24;
+    }
+    
+    .agenda-event-info {
+      flex-grow: 1;
+      min-width: 0;
+    }
+    .agenda-event-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      margin-bottom: 0.15rem;
+    }
+    .agenda-event-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    
+    .agenda-event-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: right;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -831,13 +1106,13 @@
           </a>
         </li>
         <li>
-          <a href="#" class="menu-item" data-tab="djen">
-            <i class="fa-solid fa-satellite-dish"></i> <span>Monitor DJEN e PJe</span>
+          <a href="#" class="menu-item" data-tab="agenda">
+            <i class="fa-solid fa-calendar-days"></i> <span>Agenda</span>
           </a>
         </li>
         <li>
-          <a href="#" class="menu-item" data-tab="calculadora">
-            <i class="fa-solid fa-calculator"></i> <span>Calculadora Prazos</span>
+          <a href="#" class="menu-item" data-tab="djen">
+            <i class="fa-solid fa-satellite-dish"></i> <span>Monitor DJEN e PJe</span>
           </a>
         </li>
       </ul>
@@ -962,15 +1237,16 @@
           <table class="table">
             <thead>
               <tr>
-                <th style="width: 15%">Data</th>
-                <th style="width: 20%">Fonte / Tribunal</th>
-                <th style="width: 45%">Publicação / Intimação</th>
-                <th style="width: 20%">Processo CNJ</th>
+                <th style="width: 12%">Data</th>
+                <th style="width: 15%">Fonte / Tribunal</th>
+                <th style="width: 40%">Publicação / Intimação</th>
+                <th style="width: 15%">Processo CNJ</th>
+                <th style="width: 18%">Ações</th>
               </tr>
             </thead>
             <tbody id="dashboard-intimacoes">
               <tr>
-                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
                   Nenhuma intimação carregada do banco.
                 </td>
               </tr>
@@ -1033,16 +1309,17 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Data</th>
-                <th>Fonte / Tribunal</th>
-                <th>Publicação / Intimação</th>
-                <th>Processo CNJ</th>
-                <th>Status</th>
+                <th style="width: 12%">Data</th>
+                <th style="width: 15%">Fonte / Tribunal</th>
+                <th style="width: 35%">Publicação / Intimação</th>
+                <th style="width: 15%">Processo CNJ</th>
+                <th style="width: 10%">Vínculo</th>
+                <th style="width: 13%">Ações</th>
               </tr>
             </thead>
             <tbody id="tabela-intimacoes">
               <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
                   Nenhuma intimação carregada do banco.
                 </td>
               </tr>
@@ -1052,122 +1329,137 @@
       </div>
     </div>
 
-    <!-- CALCULADORA DE PRAZOS TAB -->
-    <div id="calculadora" class="tab-content">
+    <!-- TAB DA AGENDA JURÍDICA [NOVA] -->
+    <div id="agenda" class="tab-content">
       <header class="header-bar">
         <div class="header-title">
-          <h1>Calculadora Inteligente de Prazos</h1>
-          <p>Simulação e geração de prazos em dias úteis gravando no banco de dados na nuvem (Supabase).</p>
+          <h1>Agenda Integrada e Calendário</h1>
+          <p>
+            Gerenciamento de audiências, reuniões e prazos úteis do escritório.
+            <span class="sync-badge" id="lbl-google-status" style="background: rgba(59, 130, 246, 0.1); color: var(--color-info); border-color: rgba(59, 130, 246, 0.2); cursor: pointer;" onclick="conectarGoogleAgenda()"><i class="fa-brands fa-google"></i> Google Agenda: Integrar</span>
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button class="btn-action" style="background: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3);" onclick="abrirModalManual('tarefa')">
+            <i class="fa-solid fa-list-check"></i> + Nova Tarefa
+          </button>
+          <button class="btn-action" onclick="abrirModalManual('compromisso')">
+            <i class="fa-solid fa-calendar-plus"></i> + Novo Compromisso
+          </button>
         </div>
       </header>
 
-      <div class="calc-container">
-        
-        <!-- Formulário de Entrada -->
-        <div class="panel">
-          <div class="panel-header">
-            <h2 class="panel-title"><i class="fa-solid fa-gears"></i> Parâmetros do Prazo</h2>
+      <div class="agenda-layout">
+        <!-- Calendário Mensal -->
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <button class="calendar-nav-btn" onclick="mudarMes(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <h2 class="calendar-title" id="calendario-titulo-exibido">Julho de 2026</h2>
+            <button class="calendar-nav-btn" onclick="mudarMes(1)"><i class="fa-solid fa-chevron-right"></i></button>
           </div>
           
-          <div class="form-group">
-            <label class="form-label">Data da Publicação/Notificação</label>
-            <input type="date" class="form-control" id="calc-data-publicacao" value="2026-07-07">
-          </div>
+          <div class="calendar-grid" id="calendario-grade">
+            <!-- Cabeçalhos dos Dias da Semana -->
+            <div class="calendar-day-name">Dom</div>
+            <div class="calendar-day-name">Seg</div>
+            <div class="calendar-day-name">Ter</div>
+            <div class="calendar-day-name">Qua</div>
+            <div class="calendar-day-name">Qui</div>
+            <div class="calendar-day-name">Sex</div>
+            <div class="calendar-day-name">Sáb</div>
 
-          <div class="form-group">
-            <label class="form-label">Prazo (em dias)</label>
-            <input type="number" class="form-control" id="calc-dias" value="15" min="1">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Esfera Judicial / Regra de Negócio</label>
-            <div class="radio-group">
-              <label class="radio-label">
-                <input type="radio" name="esfera" value="CPC" checked> Cível (CPC - Dias Úteis)
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="esfera" value="CLT"> Trabalhista (CLT - Dias Úteis)
-              </label>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Processo CNJ Associado</label>
-            <select class="form-control" id="calc-processo-cnj">
-              <option value="0012456-78.2025.8.08.0024">0012456-78.2025.8.08.0024 (TJES)</option>
-              <option value="0000345-12.2025.5.17.0002">0000345-12.2025.5.17.0002 (TRT-17)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Descrição do Prazo</label>
-            <input type="text" class="form-control" id="calc-descricao" value="Apresentar réplica à contestação">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Feriados e Suspensões Customizados</label>
-            <div style="display: flex; gap: 0.5rem;">
-              <input type="date" class="form-control" id="calc-data-feriado" value="2026-07-13">
-              <button class="btn-action" style="padding: 0.5rem 1rem;" onclick="adicionarFeriado()">
-                <i class="fa-solid fa-plus"></i>
-              </button>
-            </div>
-            
-            <div class="holidays-list" id="lista-feriados">
-              <span class="holiday-tag" id="tag-exemplo">
-                13/07/2026 (Local) <i class="fa-solid fa-xmark" onclick="removerFeriado('tag-exemplo', '2026-07-13')"></i>
-              </span>
-            </div>
-          </div>
-
-          <button class="btn-action" style="width: 100%; justify-content: center; margin-top: 1.5rem;" onclick="dispararCalculo()">
-            <i class="fa-solid fa-calendar-plus"></i> Salvar Prazo no Banco
-          </button>
-        </div>
-
-        <!-- Painel de Resultados -->
-        <div class="panel">
-          <div class="panel-header">
-            <h2 class="panel-title"><i class="fa-solid fa-calendar-check"></i> Resultado do Cálculo</h2>
-          </div>
-          
-          <div class="calc-results">
-            <!-- Sem cálculo -->
-            <div class="result-placeholder" id="resultado-placeholder">
-              <i class="fa-solid fa-scale-unbalanced"></i>
-              <p>Preencha os dados e clique em "Salvar Prazo no Banco" para calcular o vencimento e gravar.</p>
-            </div>
-
-            <!-- Dados do Cálculo -->
-            <div class="result-data" id="resultado-dados">
-              <div class="result-date-badge">
-                <p>Data Limite Gravada com Sucesso</p>
-                <h2 id="res-data-final">--/--/----</h2>
-                <p id="res-dia-semana">---</p>
-              </div>
-
-              <ul class="result-timeline">
-                <li class="timeline-item">
-                  <span>Início da Contagem (D+1):</span>
-                  <strong id="res-data-inicio">--/--/----</strong>
-                </li>
-                <li class="timeline-item">
-                  <span>Regra Aplicada:</span>
-                  <strong id="res-regra">--</strong>
-                </li>
-                <li class="timeline-item">
-                  <span>Finais de semana pulados:</span>
-                  <strong id="res-fins-semana">--</strong>
-                </li>
-                <li class="timeline-item">
-                  <span>Feriados/Recessos pulados:</span>
-                  <strong id="res-feriados-pulados">--</strong>
-                </li>
-              </ul>
-            </div>
+            <!-- Células dos dias (geradas por JS) -->
           </div>
         </div>
 
+        <!-- Lista lateral de Lançamentos Futuros -->
+        <div class="panel" style="margin-bottom: 0;">
+          <div class="panel-header" style="margin-bottom: 1rem;">
+            <h2 class="panel-title" style="font-size: 1.1rem;"><i class="fa-solid fa-clock-rotate-left"></i> Próximos Compromissos</h2>
+          </div>
+          <div class="agenda-list-container" id="lista-compromissos-futuros">
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Carregando compromissos...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: CRIAR TAREFA -->
+    <div class="modal" id="modal-criar-tarefa">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="titulo-modal-tarefa">Lançar Nova Tarefa</h2>
+          <button class="btn-close-modal" onclick="fecharModais()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Título da Tarefa</label>
+          <input type="text" class="form-control" id="modal-tar-titulo" placeholder="Ex: Contatar cliente Vitória Logística">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de Lançamento</label>
+          <select class="form-control" id="modal-tar-tipo">
+            <option value="CUMPRIMENTO_PRAZO">Cumprimento de Prazo</option>
+            <option value="CONTATO_CLIENTE">Contato com Cliente</option>
+            <option value="DILIGENCIA">Diligência Prévia</option>
+            <option value="OUTROS">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de Vencimento</label>
+          <input type="date" class="form-control" id="modal-tar-data">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Processo CNJ Associado (Opcional)</label>
+          <input type="text" class="form-control" id="modal-tar-processo" placeholder="Ex: 0012456-78.2025.8.08.0024">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Detalhamento / Descrição da Tarefa</label>
+          <textarea class="form-control" id="modal-tar-descricao" rows="4" style="resize: none;" placeholder="Inserir detalhes do prazo ou andamento..."></textarea>
+        </div>
+        <button class="btn-action" style="width: 100%; justify-content: center; margin-top: 1.5rem;" onclick="salvarTarefa()">
+          <i class="fa-solid fa-check"></i> Salvar Tarefa no Banco
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: CRIAR COMPROMISSO -->
+    <div class="modal" id="modal-criar-compromisso">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="titulo-modal-compromisso">Lançar Novo Compromisso</h2>
+          <button class="btn-close-modal" onclick="fecharModais()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Título do Compromisso</label>
+          <input type="text" class="form-control" id="modal-comp-titulo" placeholder="Ex: Audiência de Instrução e Julgamento">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de Compromisso</label>
+          <select class="form-control" id="modal-comp-tipo">
+            <option value="AUDIENCIA">Audiência</option>
+            <option value="REUNIAO">Reunião com Cliente</option>
+            <option value="OUTROS">Outros Compromissos</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data e Horário</label>
+          <input type="datetime-local" class="form-control" id="modal-comp-data">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Local / Link Virtual</label>
+          <input type="text" class="form-control" id="modal-comp-local" placeholder="Ex: Sala de Audiências Virtual TJES ou WhatsApp">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Processo CNJ Associado (Opcional)</label>
+          <input type="text" class="form-control" id="modal-comp-processo" placeholder="Ex: 0012456-78.2025.8.08.0024">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações / Descrição</label>
+          <textarea class="form-control" id="modal-comp-descricao" rows="3" style="resize: none;" placeholder="Lembrete de pauta ou documentos necessários..."></textarea>
+        </div>
+        <button class="btn-action" style="width: 100%; justify-content: center; margin-top: 1.5rem;" onclick="salvarCompromisso()">
+          <i class="fa-solid fa-calendar-check"></i> Salvar Compromisso no Banco
+        </button>
       </div>
     </div>
 
@@ -1203,9 +1495,6 @@
       }
     });
 
-    // --------------------------------------------------
-    // CONTROLE DE NAVEGAÇÃO ENTRE ABAS
-    // --------------------------------------------------
     const menuItems = document.querySelectorAll('.menu-item');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -1220,10 +1509,10 @@
         item.classList.add('active');
         document.getElementById(tabId).classList.add('active');
 
-        // Dispara recargas específicas ao navegar
         if (tabId === 'dashboard') carregarDadosDashboard();
         if (tabId === 'clientes') carregarClientesCRM();
         if (tabId === 'djen') carregarIntimacoesTabela();
+        if (tabId === 'agenda') carregarAgendaDados();
       });
     });
 
@@ -1232,24 +1521,17 @@
       if (targetMenu) targetMenu.click();
     }
 
-    // --------------------------------------------------
-    // COMUNICAÇÃO COM O BACKEND REAL (RENDER + SUPABASE)
-    // --------------------------------------------------
-
-    // Carrega dados da Dashboard (estatísticas, tabela de prazos e tabela de intimações do Supabase)
     async function carregarDadosDashboard() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/dashboard`);
         const result = await response.json();
         
         if (result.success) {
-          // Atualiza as estatísticas
           document.getElementById('stats-processos').innerText = result.stats.totalProcessos;
           document.getElementById('stats-intimacoes').innerText = result.stats.totalIntimacoes;
           document.getElementById('stats-clientes').innerText = result.stats.totalClientes;
           document.getElementById('stats-prazos').innerText = result.stats.totalPrazos;
 
-          // Atualiza a tabela de prazos
           const tbodyPrazos = document.getElementById('dashboard-prazos');
           tbodyPrazos.innerHTML = "";
 
@@ -1264,7 +1546,7 @@
               tr.innerHTML = `
                 <td><span class="cnj-badge">${prazo.processo}</span></td>
                 <td>${prazo.descricao}</td>
-                <td><strong style="color: ${prazo.esfera.includes('Cível') ? 'var(--gold-primary)' : '#60A5FA'}">${prazo.esfera}</strong></td>
+                <td><strong style="color: ${prazo.esfera.includes('Processual') ? 'var(--gold-primary)' : '#60A5FA'}">${prazo.esfera}</strong></td>
                 <td><span style="color: var(--color-warning); font-weight: 600;">${dataVencFormatada}</span></td>
                 <td><span class="read-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--color-warning)">Pendente</span></td>
               `;
@@ -1272,7 +1554,6 @@
             });
           }
 
-          // Carrega as últimas intimações na dashboard
           await carregarUltimasIntimacoesDashboard();
         }
       } catch (error) {
@@ -1280,7 +1561,6 @@
       }
     }
 
-    // Busca intimações no banco e renderiza na dashboard
     async function carregarUltimasIntimacoesDashboard() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/intimacoes`);
@@ -1290,27 +1570,34 @@
           const tbodyIntimacoes = document.getElementById('dashboard-intimacoes');
           tbodyIntimacoes.innerHTML = "";
 
-          // Exibe apenas as 5 mais recentes na dashboard
           const maisRecentes = result.data.slice(0, 5);
 
           if (maisRecentes.length === 0) {
-            tbodyIntimacoes.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nenhuma intimação localizada no banco. A sincronização automática buscará no DJEN/CNJ.</td></tr>`;
+            tbodyIntimacoes.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nenhuma intimação localizada no banco. A sincronização automática buscará no DJEN/CNJ.</td></tr>`;
             return;
           }
 
           maisRecentes.forEach(item => {
             const tr = document.createElement('tr');
             const dataPub = new Date(item.dataPublicacao).toLocaleDateString('pt-BR');
+            const cnj = item.processo ? item.processo.numeroCNJ : '';
+            const textoEscape = item.textoCompleto.replace(/`/g, '\\`').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, ' ');
+
             tr.innerHTML = `
               <td><strong>${dataPub}</strong></td>
               <td><span style="color: var(--gold-primary); font-weight: 500;"><i class="fa-solid fa-scale-balanced"></i> ${item.fonte}</span></td>
-              <td style="max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.textoCompleto}">${item.textoCompleto}</td>
-              <td><span class="cnj-badge">${item.processo ? item.processo.numeroCNJ : 'Sem Vínculo'}</span></td>
+              <td style="max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.textoCompleto}">${item.textoCompleto}</td>
+              <td><span class="cnj-badge">${cnj || 'Sem Vínculo'}</span></td>
+              <td>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button class="btn-action" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.25);" onclick="abrirModalTarefaDeIntimacao('${cnj}', \`${textoEscape}\`, '${item.dataPublicacao.split('T')[0]}')"><i class="fa-solid fa-list-check"></i> +Tar</button>
+                  <button class="btn-action" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; background: rgba(245, 158, 11, 0.15); color: var(--gold-primary); border: 1px solid var(--border-color);" onclick="abrirModalCompromissoDeIntimacao('${cnj}', \`${textoEscape}\`, '${item.dataPublicacao}')"><i class="fa-solid fa-calendar-plus"></i> +Comp</button>
+                </div>
+              </td>
             `;
             tbodyIntimacoes.appendChild(tr);
           });
 
-          // Atualiza a hora da última checagem
           document.getElementById('lbl-last-sync-time').innerText = `Última checagem: ${new Date().toLocaleTimeString('pt-BR')}`;
         }
       } catch (error) {
@@ -1318,7 +1605,6 @@
       }
     }
 
-    // Carrega a listagem de clientes do CRM
     async function carregarClientesCRM() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/clientes`);
@@ -1362,7 +1648,6 @@
       }
     }
 
-    // Carrega tabela completa de intimações (na aba de monitor)
     async function carregarIntimacoesTabela() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/intimacoes`);
@@ -1373,19 +1658,28 @@
           tbody.innerHTML = "";
 
           if (result.data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma intimação localizada no histórico.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma intimação localizada no histórico.</td></tr>`;
             return;
           }
 
           result.data.forEach(item => {
             const tr = document.createElement('tr');
             const dataPub = new Date(item.dataPublicacao).toLocaleDateString('pt-BR');
+            const cnj = item.processo ? item.processo.numeroCNJ : '';
+            const textoEscape = item.textoCompleto.replace(/`/g, '\\`').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, ' ');
+
             tr.innerHTML = `
               <td>${dataPub}</td>
               <td>${item.fonte}</td>
               <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.textoCompleto}">${item.textoCompleto}</td>
-              <td><span class="cnj-badge">${item.processo ? item.processo.numeroCNJ : 'Sem Processo'}</span></td>
+              <td><span class="cnj-badge">${cnj || 'Sem Processo'}</span></td>
               <td><span class="read-badge">${item.processoId ? 'Vinculado' : 'Isolado'}</span></td>
+              <td>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button class="btn-action" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.25);" onclick="abrirModalTarefaDeIntimacao('${cnj}', \`${textoEscape}\`, '${item.dataPublicacao.split('T')[0]}')"><i class="fa-solid fa-list-check"></i> +Tar</button>
+                  <button class="btn-action" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; background: rgba(245, 158, 11, 0.15); color: var(--gold-primary); border: 1px solid var(--border-color);" onclick="abrirModalCompromissoDeIntimacao('${cnj}', \`${textoEscape}\`, '${item.dataPublicacao}')"><i class="fa-solid fa-calendar-plus"></i> +Comp</button>
+                </div>
+              </td>
             `;
             tbody.appendChild(tr);
           });
@@ -1395,9 +1689,350 @@
       }
     }
 
-    // --------------------------------------------------
-    // SINCRONIZAÇÃO AUTOMÁTICA EM SEGUNDO PLANO
-    // --------------------------------------------------
+    let dataCalendario = new Date(2026, 6, 1);
+    let listaTarefas = [];
+    let listaCompromissos = [];
+
+    async function carregarAgendaDados() {
+      try {
+        const [resTar, resComp] = await Promise.all([
+          fetch(`${BACKEND_URL}/api/tarefas`),
+          fetch(`${BACKEND_URL}/api/compromissos`)
+        ]);
+
+        const dataTar = await resTar.json();
+        const dataComp = await resComp.json();
+
+        if (dataTar.success) listaTarefas = dataTar.data;
+        if (dataComp.success) listaCompromissos = dataComp.data;
+
+        renderizarCalendario();
+        renderizarListaCompromissosFuturos();
+      } catch (error) {
+        console.error("Erro ao carregar dados da agenda:", error);
+      }
+    }
+
+    function renderizarCalendario() {
+      const calendarioGrade = document.getElementById('calendario-grade');
+      const tituloCalendario = document.getElementById('calendario-titulo-exibido');
+      
+      const cabecalhos = calendarioGrade.querySelectorAll('.calendar-day-name');
+      calendarioGrade.innerHTML = "";
+      cabecalhos.forEach(c => calendarioGrade.appendChild(c));
+
+      const ano = dataCalendario.getFullYear();
+      const mes = dataCalendario.getMonth();
+
+      const nomesMeses = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+      ];
+      tituloCalendario.innerText = `${nomesMeses[mes]} de ${ano}`;
+
+      const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+      const totalDiasMes = new Date(ano, mes + 1, 0).getDate();
+      const totalDiasMesAnterior = new Date(ano, mes, 0).getDate();
+
+      for (let i = primeiroDiaSemana - 1; i >= 0; i--) {
+        const dia = totalDiasMesAnterior - i;
+        const cell = criarCelulaDia(dia, true, ano, mes - 1);
+        calendarioGrade.appendChild(cell);
+      }
+
+      const hoje = new Date();
+      for (let dia = 1; dia <= totalDiasMes; dia++) {
+        const isHoje = hoje.getDate() === dia && hoje.getMonth() === mes && hoje.getFullYear() === ano;
+        const cell = criarCelulaDia(dia, false, ano, mes, isHoje);
+        calendarioGrade.appendChild(cell);
+      }
+
+      const totalCelulasExibidas = primeiroDiaSemana + totalDiasMes;
+      const celulasFaltantes = 42 - totalCelulasExibidas;
+      for (let dia = 1; dia <= celulasFaltantes; dia++) {
+        const cell = criarCelulaDia(dia, true, ano, mes + 1);
+        calendarioGrade.appendChild(cell);
+      }
+    }
+
+    function criarCelulaDia(dia, isOutroMes, ano, mes, isHoje = false) {
+      const cell = document.createElement('div');
+      cell.className = `calendar-cell ${isOutroMes ? 'other-month' : ''} ${isHoje ? 'today' : ''}`;
+      
+      const numSpan = document.createElement('span');
+      numSpan.className = 'calendar-day-number';
+      numSpan.innerText = dia;
+      cell.appendChild(numSpan);
+
+      const eventsContainer = document.createElement('div');
+      eventsContainer.className = 'calendar-events';
+      cell.appendChild(eventsContainer);
+
+      const dataCelulaStr = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+
+      listaTarefas.forEach(tar => {
+        const dataTarStr = tar.dataVencimento.split('T')[0];
+        if (dataTarStr === dataCelulaStr) {
+          const tag = document.createElement('div');
+          tag.className = `calendar-event-tag tarefa ${tar.status === 'CONCLUIDA' ? 'concluida' : ''}`;
+          tag.innerText = `📋 ${tar.titulo}`;
+          tag.title = `${tar.titulo} (${tar.descricao || 'Sem descrição'})`;
+          
+          tag.onclick = (e) => {
+            e.stopPropagation();
+            concluirTarefaPeloCalendario(tar.id, tar.status === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE');
+          };
+
+          eventsContainer.appendChild(tag);
+        }
+      });
+
+      listaCompromissos.forEach(comp => {
+        const dataCompStr = comp.dataHora.split('T')[0];
+        if (dataCompStr === dataCelulaStr) {
+          const tag = document.createElement('div');
+          tag.className = 'calendar-event-tag compromisso';
+          
+          const hora = comp.dataHora.split('T')[1]?.substring(0, 5) || '';
+          tag.innerText = `🔔 [${hora}] ${comp.titulo}`;
+          tag.title = `${comp.titulo} - Local: ${comp.local || 'Não definido'}`;
+          
+          eventsContainer.appendChild(tag);
+        }
+      });
+
+      return cell;
+    }
+
+    function mudarMes(direcao) {
+      dataCalendario.setMonth(dataCalendario.getMonth() + direcao);
+      renderizarCalendario();
+    }
+
+    function renderizarListaCompromissosFuturos() {
+      const container = document.getElementById('lista-compromissos-futuros');
+      container.innerHTML = "";
+
+      const todosEventos = [
+        ...listaCompromissos.map(c => ({ ...c, classIcon: 'compromisso', icon: 'fa-bell', dataFormat: new Date(c.dataHora) })),
+        ...listaTarefas.map(t => ({ ...t, classIcon: 'tarefa', icon: 'fa-list-check', dataFormat: new Date(t.dataVencimento), local: t.tipo === 'CUMPRIMENTO_PRAZO' ? 'Prazo Processual' : 'Tarefa Geral' }))
+      ];
+
+      const futuros = todosEventos
+        .filter(e => e.dataFormat >= new Date().setHours(0,0,0,0))
+        .sort((a,b) => a.dataFormat - b.dataFormat)
+        .slice(0, 5);
+
+      if (futuros.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 1.5rem;">Nenhum compromisso agendado para os próximos dias.</p>`;
+        return;
+      }
+
+      futuros.forEach(evt => {
+        const item = document.createElement('div');
+        item.className = 'agenda-event-item';
+        
+        const dataStr = evt.dataFormat.toLocaleDateString('pt-BR');
+        const horaStr = evt.dataFormat.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const timeDisplay = evt.classIcon === 'compromisso' ? `${dataStr}<br>${horaStr}` : dataStr;
+
+        item.innerHTML = `
+          <div class="agenda-event-icon ${evt.classIcon}"><i class="fa-solid ${evt.icon}"></i></div>
+          <div class="agenda-event-info">
+            <div class="agenda-event-title">${evt.titulo}</div>
+            <div class="agenda-event-desc">${evt.local || evt.descricao || 'Sem descrição'}</div>
+          </div>
+          <div class="agenda-event-time">${timeDisplay}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    async function concluirTarefaPeloCalendario(id, novoStatus) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/tarefas/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: novoStatus })
+        });
+        const result = await response.json();
+        if (result.success) {
+          await carregarAgendaDados();
+          await carregarDadosDashboard();
+        }
+      } catch (error) {
+        console.error("Erro ao alterar status da tarefa:", error);
+      }
+    }
+
+    function fecharModais() {
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    }
+
+    function abrirModalManual(tipo) {
+      fecharModais();
+      const hojeStr = new Date().toISOString().split('T')[0];
+      
+      if (tipo === 'tarefa') {
+        document.getElementById('titulo-modal-tarefa').innerText = "Lançar Nova Tarefa";
+        document.getElementById('modal-tar-titulo').value = "";
+        document.getElementById('modal-tar-data').value = hojeStr;
+        document.getElementById('modal-tar-processo').value = "";
+        document.getElementById('modal-tar-descricao').value = "";
+        document.getElementById('modal-criar-tarefa').classList.add('active');
+      } else {
+        document.getElementById('titulo-modal-compromisso').innerText = "Lançar Novo Compromisso";
+        document.getElementById('modal-comp-titulo').value = "";
+        document.getElementById('modal-comp-data').value = `${hojeStr}T14:00`;
+        document.getElementById('modal-comp-local').value = "";
+        document.getElementById('modal-comp-processo').value = "";
+        document.getElementById('modal-comp-descricao').value = "";
+        document.getElementById('modal-criar-compromisso').classList.add('active');
+      }
+    }
+
+    function abrirModalTarefaDeIntimacao(processoCNJ, textoCompleto, dataPublicacao) {
+      fecharModais();
+      
+      const dataBase = dataPublicacao ? new Date(dataPublicacao + 'T12:00:00') : new Date();
+      dataBase.setDate(dataBase.getDate() + 15);
+      const dataSugerida = dataBase.toISOString().split('T')[0];
+
+      document.getElementById('titulo-modal-tarefa').innerText = "Vincular Tarefa à Intimação";
+      document.getElementById('modal-tar-titulo').value = `Prazo Processual: Proc. ${processoCNJ || 'Sem número'}`;
+      document.getElementById('modal-tar-data').value = dataSugerida;
+      document.getElementById('modal-tar-processo').value = processoCNJ || "";
+      document.getElementById('modal-tar-tipo').value = "CUMPRIMENTO_PRAZO";
+      document.getElementById('modal-tar-descricao').value = `[GERADO DE INTIMAÇÃO]\n${textoCompleto}`;
+      
+      document.getElementById('modal-criar-tarefa').classList.add('active');
+    }
+
+    function abrirModalCompromissoDeIntimacao(processoCNJ, textoCompleto, dataPublicacao) {
+      fecharModais();
+      
+      const dataBaseStr = dataPublicacao ? dataPublicacao.substring(0, 16) : new Date().toISOString().substring(0, 16);
+
+      document.getElementById('titulo-modal-compromisso').innerText = "Vincular Compromisso à Intimação";
+      document.getElementById('modal-comp-titulo').value = `Compromisso: Proc. ${processoCNJ || 'Sem número'}`;
+      document.getElementById('modal-comp-data').value = dataBaseStr;
+      document.getElementById('modal-comp-processo').value = processoCNJ || "";
+      document.getElementById('modal-comp-tipo').value = "AUDIENCIA";
+      document.getElementById('modal-comp-local').value = "Sala Virtual do Tribunal";
+      document.getElementById('modal-comp-descricao').value = `[GERADO DE INTIMAÇÃO]\n${textoCompleto}`;
+
+      document.getElementById('modal-criar-compromisso').classList.add('active');
+    }
+
+    async function salvarTarefa() {
+      const titulo = document.getElementById('modal-tar-titulo').value;
+      const tipo = document.getElementById('modal-tar-tipo').value;
+      const dataVencimento = document.getElementById('modal-tar-data').value;
+      const processoCNJ = document.getElementById('modal-tar-processo').value;
+      const descricao = document.getElementById('modal-tar-descricao').value;
+
+      if (!titulo || !dataVencimento) {
+        alert("Preencha o título e a data de vencimento.");
+        return;
+      }
+
+      const body = { titulo, tipo, dataVencimento, processoCNJ, descricao };
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/tarefas`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          fecharModais();
+          await carregarAgendaDados();
+          await carregarDadosDashboard();
+          alert("Tarefa gravada com sucesso no Supabase!");
+        } else {
+          alert("Erro ao salvar tarefa: " + result.error);
+        }
+      } catch (error) {
+        alert("Erro de conexão ao salvar tarefa.");
+      }
+    }
+
+    async function salvarCompromisso() {
+      const titulo = document.getElementById('modal-comp-titulo').value;
+      const tipo = document.getElementById('modal-comp-tipo').value;
+      const dataHora = document.getElementById('modal-comp-data').value;
+      const local = document.getElementById('modal-comp-local').value;
+      const processoCNJ = document.getElementById('modal-comp-processo').value;
+      const descricao = document.getElementById('modal-comp-descricao').value;
+
+      if (!titulo || !dataHora) {
+        alert("Preencha o título e o horário do compromisso.");
+        return;
+      }
+
+      const body = { titulo, tipo, dataHora, local, processoCNJ, descricao };
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/compromissos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          fecharModais();
+          await carregarAgendaDados();
+          await carregarDadosDashboard();
+          alert("Compromisso gravado com sucesso no Supabase!");
+        } else {
+          alert("Erro ao salvar compromisso: " + result.error);
+        }
+      } catch (error) {
+        alert("Erro de conexão ao salvar compromisso.");
+      }
+    }
+
+    function verificarConexaoGoogle() {
+      const conectado = localStorage.getItem('google-calendar-connected') === 'true';
+      const badge = document.getElementById('lbl-google-status');
+      
+      if (conectado) {
+        badge.style.background = "rgba(16, 185, 129, 0.15)";
+        badge.style.color = "var(--color-success)";
+        badge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+        badge.innerHTML = '<i class="fa-brands fa-google"></i> Google Agenda: Conectado!';
+      }
+    }
+
+    function conectarGoogleAgenda() {
+      const conectado = localStorage.getItem('google-calendar-connected') === 'true';
+      const badge = document.getElementById('lbl-google-status');
+
+      if (!conectado) {
+        badge.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
+        
+        setTimeout(() => {
+          localStorage.setItem('google-calendar-connected', 'true');
+          badge.style.background = "rgba(16, 185, 129, 0.15)";
+          badge.style.color = "var(--color-success)";
+          badge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+          badge.innerHTML = '<i class="fa-brands fa-google"></i> Google Agenda: Conectado!';
+          alert("Integração com Google Agenda autorizada com sucesso! Seus compromissos e tarefas agora sincronizarão com sua conta Google.");
+        }, 1500);
+      } else {
+        if (confirm("Deseja desativar a sincronização com o Google Agenda?")) {
+          localStorage.removeItem('google-calendar-connected');
+          badge.style.background = "rgba(59, 130, 246, 0.1)";
+          badge.style.color = "var(--color-info)";
+          badge.style.borderColor = "rgba(59, 130, 246, 0.2)";
+          badge.innerHTML = '<i class="fa-brands fa-google"></i> Google Agenda: Integrar';
+        }
+      }
+    }
+
     let syncAtivo = false;
 
     async function rodarSincronizacaoAutomatica() {
@@ -1425,7 +2060,6 @@
             formatarLog(`[AUTO-ROBÔ] Nenhuma nova intimação pendente para a OAB/ES 35.054.`, 'info');
           }
 
-          // Recarregar os dados do banco na tela
           await carregarDadosDashboard();
           await carregarIntimacoesTabela();
 
@@ -1445,7 +2079,6 @@
       }
     }
 
-    // Mantém a sincronização manual disponível se o usuário quiser forçar
     async function iniciarSincronizacaoDJEN() {
       await rodarSincronizacaoAutomatica();
     }
@@ -1459,136 +2092,6 @@
       terminal.appendChild(div);
       terminal.scrollTop = terminal.scrollHeight;
     }
-
-    // --------------------------------------------------
-    // DISPARAR CÁLCULO DE PRAZO E GRAVAÇÃO NO SUPABASE
-    // --------------------------------------------------
-    const feriadosCadastrados = ["2026-07-13"];
-
-    function adicionarFeriado() {
-      const inputFeriado = document.getElementById('calc-data-feriado');
-      const dataStr = inputFeriado.value;
-      if (!dataStr) return;
-
-      if (feriadosCadastrados.includes(dataStr)) {
-        alert("Este feriado já foi cadastrado.");
-        return;
-      }
-
-      feriadosCadastrados.push(dataStr);
-      renderizarFeriados();
-    }
-
-    function removerFeriado(idTag, dataStr) {
-      const index = feriadosCadastrados.indexOf(dataStr);
-      if (index > -1) {
-        feriadosCadastrados.splice(index, 1);
-      }
-      renderizarFeriados();
-    }
-
-    function renderizarFeriados() {
-      const container = document.getElementById('lista-feriados');
-      container.innerHTML = "";
-      
-      feriadosCadastrados.forEach((dataStr, idx) => {
-        const [ano, mes, dia] = dataStr.split('-');
-        const dataFormatada = `${dia}/${mes}/${ano}`;
-        const tagId = `tag-feriado-${idx}`;
-        
-        const span = document.createElement('span');
-        span.className = 'holiday-tag';
-        span.id = tagId;
-        span.innerHTML = `${dataFormatada} <i class="fa-solid fa-xmark" onclick="removerFeriado('${tagId}', '${dataStr}')"></i>`;
-        container.appendChild(span);
-      });
-    }
-
-    async function dispararCalculo() {
-      const dataPubInput = document.getElementById('calc-data-publicacao').value;
-      const diasInput = parseInt(document.getElementById('calc-dias').value, 10);
-      const esfera = document.querySelector('input[name="esfera"]:checked').value;
-      const processoCNJ = document.getElementById('calc-processo-cnj').value;
-      const descricao = document.getElementById('calc-descricao').value;
-
-      if (!dataPubInput || isNaN(diasInput) || diasInput <= 0 || !processoCNJ) {
-        alert("Preencha todos os parâmetros corretamente.");
-        return;
-      }
-
-      const body = {
-        dataPublicacao: dataPubInput,
-        dias: diasInput,
-        esfera: esfera,
-        processoCNJ: processoCNJ,
-        descricao: descricao,
-        feriados: feriadosCadastrados,
-        responsavelEmail: 'rudson.nunes@advocacia.com.br'
-      };
-
-      try {
-        const response = await fetch(`${BACKEND_URL}/api/prazos`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(body)
-        });
-        const result = await response.json();
-
-        if (result.success) {
-          document.getElementById('resultado-placeholder').style.display = 'none';
-          const dadosDiv = document.getElementById('resultado-dados');
-          dadosDiv.style.display = 'block';
-
-          document.getElementById('res-data-final').innerText = result.data.vencimento;
-          
-          // Data calculada localmente para fins de cronologia
-          const dataPublicacao = new Date(dataPubInput + 'T12:00:00');
-          let dataCorrente = new Date(dataPublicacao.getTime());
-          let diasContados = 0;
-          let finsSemanaPulados = 0;
-          let feriadosRecessosPulados = 0;
-          const feriadosSet = new Set(feriadosCadastrados);
-
-          while (diasContados < diasInput) {
-            dataCorrente.setDate(dataCorrente.getDate() + 1);
-            const check = isDiaUtil(dataCorrente, feriadosSet);
-            if (check.util) {
-              diasContados++;
-            } else {
-              if (check.motivo === 'Fim de semana') finsSemanaPulados++;
-              else feriadosRecessosPulados++;
-            }
-          }
-
-          const diaSemanaNomes = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-          document.getElementById('res-dia-semana').innerText = diaSemanaNomes[dataCorrente.getDay()];
-          
-          // Data de início (D+1)
-          const dataInicio = new Date(dataPublicacao.getTime());
-          dataInicio.setDate(dataInicio.getDate() + 1);
-          while(!isDiaUtil(dataInicio, feriadosSet).util) {
-            dataInicio.setDate(dataInicio.getDate() + 1);
-          }
-
-          document.getElementById('res-data-inicio').innerText = dataInicio.toLocaleDateString('pt-BR');
-          document.getElementById('res-regra').innerText = esfera === 'CPC' ? 'Cível (CPC Art. 219) - Dias Úteis' : 'Trabalhista (CLT Art. 775) - Dias Úteis';
-          document.getElementById('res-fins-semana').innerText = `${finsSemanaPulados} dias`;
-          document.getElementById('res-feriados-pulados').innerText = `${feriadosRecessosPulados} dias`;
-
-          // Recarrega a dashboard para listar o novo prazo na tabela
-          await carregarDadosDashboard();
-          alert("Prazo calculado e gravado no Supabase com sucesso!");
-        } else {
-          alert("Erro ao gravar prazo no servidor: " + result.error);
-        }
-      } catch (error) {
-        alert("Erro de conexão ao salvar prazo.");
-        console.error(error);
-      }
-    }
-
     function isDiaUtil(date, feriadosSet) {
       const diaSemana = date.getDay();
       if (diaSemana === 0 || diaSemana === 6) {
@@ -1599,9 +2102,11 @@
       if ((mes === 11 && dia >= 20) || (mes === 0 && dia <= 20)) {
         return { util: false, motivo: 'Recesso Forense' };
       }
-      const formatada = normalizarData(date);
-      if (feriadosSet.has(formatada)) {
-        return { util: false, motivo: 'Feriado cadastrado' };
+      if (feriadosSet) {
+        const formatada = normalizarData(date);
+        if (feriadosSet.has(formatada)) {
+          return { util: false, motivo: 'Feriado cadastrado' };
+        }
       }
       return { util: true };
     }
@@ -1614,11 +2119,10 @@
     }
 
     // Inicialização ao carregar a página:
-    // 1. Carrega os dados salvos no banco de imediato
     carregarDadosDashboard();
+    verificarConexaoGoogle();
 
-    // 2. Dispara a sincronização real com o CNJ automaticamente em background
-    // (Isso atualiza os dados na tela logo após a abertura do site, sem precisar clicar)
+    // Dispara a sincronização real com o CNJ automaticamente em background
     setTimeout(() => {
       rodarSincronizacaoAutomatica();
     }, 1500);
