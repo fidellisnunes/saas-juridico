@@ -1077,6 +1077,117 @@
       font-weight: 500;
       flex-shrink: 0;
     }
+
+    /* --------------------------------------------------
+       ESTILOS DOS CARDS DE PROCESSO & LINHA DO TEMPO
+       -------------------------------------------------- */
+    .process-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 1.5rem;
+      transition: var(--transition-smooth);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .process-card:hover {
+      border-color: var(--gold-primary);
+      transform: translateY(-2px);
+    }
+    .process-badge-representa {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .process-badge-representa.reclamante {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10B981;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .process-badge-representa.reclamada {
+      background: rgba(239, 68, 68, 0.12);
+      color: #EF4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .process-header {
+      font-size: 1.05rem;
+      font-weight: 600;
+      font-family: var(--font-serif);
+      margin-bottom: 0.75rem;
+      color: var(--text-main);
+    }
+    .process-body {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 1.25rem;
+      line-height: 1.4;
+    }
+    .process-stage {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    .process-progress-bar {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      width: 100%;
+      margin-top: 0.25rem;
+      overflow: hidden;
+    }
+    .process-progress-value {
+      height: 100%;
+      background: var(--gold-primary);
+      border-radius: 2px;
+    }
+
+    .timeline-item-mov {
+      position: relative;
+      padding-left: 1.5rem;
+      border-left: 2px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 1rem;
+      font-size: 0.8rem;
+    }
+    .timeline-item-mov::before {
+      content: '';
+      position: absolute;
+      left: -5px;
+      top: 3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold-primary);
+      box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15);
+    }
+    .timeline-item-mov-date {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: bold;
+      margin-bottom: 0.15rem;
+    }
+    .timeline-item-mov-title {
+      font-weight: bold;
+      color: var(--text-main);
+      margin-bottom: 0.25rem;
+    }
+    .timeline-item-mov-desc {
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -1103,6 +1214,11 @@
         <li>
           <a href="#" class="menu-item" data-tab="clientes">
             <i class="fa-solid fa-folder-open"></i> <span>CRM Clientes</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="menu-item" data-tab="processos">
+            <i class="fa-solid fa-scale-balanced"></i> <span>Processos</span>
           </a>
         </li>
         <li>
@@ -1271,6 +1387,83 @@
 
       <div class="client-list" id="lista-clientes-container">
         <p style="color: var(--text-muted)">Carregando clientes...</p>
+      </div>
+    <!-- TAB DE PROCESSOS [NOVA] -->
+    <div id="processos" class="tab-content">
+      <header class="header-bar">
+        <div class="header-title">
+          <h1>Gestão de Processos Judiciais</h1>
+          <p>Consulte processos públicos no TRT-17 e armazene informações detalhadas de polos, estágio e andamentos.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <input type="text" class="form-control" id="txt-consultar-processo" placeholder="Ex: 0000025-10.2025.5.17.0011" style="width: 250px;">
+          <button class="btn-action" onclick="buscarCaptchaProcesso()">
+            <i class="fa-solid fa-magnifying-glass"></i> Consultar TRT-17
+          </button>
+        </div>
+      </header>
+
+      <div class="client-list" id="lista-processos-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+        <p style="color: var(--text-muted); grid-column: span 3; text-align: center; padding: 3rem;">Nenhum processo cadastrado. Insira um número de processo acima para consultá-lo publicamente.</p>
+      </div>
+    </div>
+
+    <!-- MODAL: RESOLVER CAPTCHA DO TRT-17 -->
+    <div class="modal" id="modal-captcha-trt">
+      <div class="modal-content" style="width: 400px;">
+        <div class="modal-header">
+          <h2 class="modal-title">Validação Antirrobô (TRT-17)</h2>
+          <button class="btn-close-modal" onclick="fecharModais()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          O PJe do TRT-17 exige a resolução do CAPTCHA abaixo para consultar este processo:
+        </p>
+        
+        <div style="text-align: center; margin: 1.5rem 0; background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+          <img id="img-captcha-challenge" src="" alt="Desafio CAPTCHA" style="max-width: 200px; height: auto; border-radius: 6px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); border: 1px solid rgba(255,255,255,0.1);">
+          <button class="btn-action" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; margin-top: 1rem; display: block; margin-left: auto; margin-right: auto;" onclick="recarregarCaptcha()"><i class="fa-solid fa-arrows-rotate"></i> Recarregar</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Digite os caracteres da imagem</label>
+          <input type="text" class="form-control" id="txt-captcha-resposta" placeholder="Digite aqui" style="text-align: center; font-size: 1.25rem; letter-spacing: 0.25em; text-transform: uppercase;">
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label class="form-label">Qual parte você representa neste caso?</label>
+          <select class="form-control" id="sel-representa-polo">
+            <option value="RECLAMANTE">Defendo o Reclamante (Polo Ativo)</option>
+            <option value="RECLAMADA">Defendo a Reclamada (Polo Passivo)</option>
+          </select>
+        </div>
+
+        <button class="btn-action" style="width: 100%; justify-content: center; margin-top: 1.5rem;" onclick="submeterConsultaProcesso()">
+          <i class="fa-solid fa-circle-check"></i> Validar e Importar Processo
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: DETALHES E MOVIMENTAÇÕES DO PROCESSO -->
+    <div class="modal" id="modal-detalhes-processo">
+      <div class="modal-content" style="width: 600px; max-width: 95%;">
+        <div class="modal-header">
+          <h2 class="modal-title" id="det-proc-titulo">Processo 0000025-10.2025.5.17.0011</h2>
+          <button class="btn-close-modal" onclick="fecharModais()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
+          <div><strong>Classe:</strong> <span id="det-proc-classe">ATSum</span></div>
+          <div><strong>Tribunal:</strong> <span id="det-proc-tribunal">TRT-17</span></div>
+          <div><strong>Órgão Julgador:</strong> <span id="det-proc-vara">11ª Vara do Trabalho</span></div>
+          <div><strong>Representando:</strong> <span id="det-proc-representa" style="color: var(--gold-primary); font-weight: bold;">Reclamante</span></div>
+          <div style="grid-column: span 2;"><strong>Autor (Polo Ativo):</strong> <span id="det-proc-autor">ANNA LUISA PINTO NEVES</span></div>
+          <div style="grid-column: span 2;"><strong>Réu (Polo Passivo):</strong> <span id="det-proc-reu">SFW ALIMENTOS LTDA E OUTROS</span></div>
+        </div>
+
+        <h3 style="font-family: var(--font-serif); font-size: 1rem; margin-bottom: 0.75rem;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Andamentos</h3>
+        <div class="timeline-container" id="det-proc-movimentacoes" style="max-height: 250px; overflow-y: auto; padding-right: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+          <!-- Movimentações injetadas por JS -->
+        </div>
       </div>
     </div>
 
@@ -1511,6 +1704,7 @@
 
         if (tabId === 'dashboard') carregarDadosDashboard();
         if (tabId === 'clientes') carregarClientesCRM();
+        if (tabId === 'processos') carregarProcessosTabela();
         if (tabId === 'djen') carregarIntimacoesTabela();
         if (tabId === 'agenda') carregarAgendaDados();
       });
@@ -2116,6 +2310,239 @@
       const m = String(date.getMonth() + 1).padStart(2, '0');
       const d = String(date.getDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
+    }
+
+    // --------------------------------------------------
+    // CONTROLLER & LOGICA DE PROCESSOS JUDICIAIS
+    // --------------------------------------------------
+    let listagemProcessosGeral = [];
+    let globalTokenDesafio = "";
+    let globalNumeroProcesso = "";
+
+    async function carregarProcessosTabela() {
+      const container = document.getElementById('lista-processos-container');
+      if (!container) return;
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/processos`);
+        const result = await response.json();
+
+        if (result.success && result.data.length > 0) {
+          listagemProcessosGeral = result.data;
+          container.innerHTML = "";
+
+          result.data.forEach(proc => {
+            const card = document.createElement('div');
+            card.className = "process-card";
+
+            let pctProgresso = 20;
+            const est = (proc.estagio || "").toLowerCase();
+            if (est.includes("instrução") || est.includes("audiência")) pctProgresso = 40;
+            else if (est.includes("recurso")) pctProgresso = 60;
+            else if (est.includes("execução") || est.includes("penhora")) pctProgresso = 80;
+            else if (est.includes("acordo") || est.includes("cumprimento")) pctProgresso = 95;
+
+            const badgeClass = (proc.clienteRepresentado || "RECLAMANTE").toLowerCase();
+            const badgeText = proc.clienteRepresentado === "RECLAMANTE" ? "Reclamante" : "Reclamada";
+
+            card.innerHTML = `
+              <span class="process-badge-representa ${badgeClass}">${badgeText}</span>
+              <div>
+                <h3 class="process-header">${proc.numeroCNJ}</h3>
+                <div class="process-body">
+                  <div><strong>Classe:</strong> ${proc.classe || 'ATSum'}</div>
+                  <div><strong>Autor:</strong> ${proc.poloAtivo || 'Não informado'}</div>
+                  <div><strong>Réu:</strong> ${proc.poloPassivo || 'Não informado'}</div>
+                  <div><strong>Vara:</strong> ${proc.vara}</div>
+                  <div><strong>Cliente CRM:</strong> <span style="color: var(--gold-primary); font-weight: 600;">${proc.cliente?.name || 'Vínculo Automático'}</span></div>
+                </div>
+              </div>
+              <div>
+                <div class="process-stage">
+                  <span>Estágio: ${proc.estagio || 'Andamento inicial'}</span>
+                  <span>${pctProgresso}%</span>
+                </div>
+                <div class="process-progress-bar">
+                  <div class="process-progress-value" style="width: ${pctProgresso}%"></div>
+                </div>
+                <button class="btn-action" style="width: 100%; margin-top: 1.25rem; justify-content: center;" onclick="verDetalhesProcesso('${proc.id}')">
+                  <i class="fa-solid fa-list-check"></i> Ver Andamentos
+                </button>
+              </div>
+            `;
+            container.appendChild(card);
+          });
+        } else {
+          container.innerHTML = `
+            <p style="color: var(--text-muted); grid-column: span 3; text-align: center; padding: 3rem;">
+              Nenhum processo cadastrado. Insira um número de processo acima para consultá-lo publicamente no TRT-17.
+            </p>
+          `;
+        }
+      } catch (err) {
+        console.error("Erro ao carregar processos:", err);
+        container.innerHTML = `
+          <p style="color: var(--color-warning); grid-column: span 3; text-align: center; padding: 3rem;">
+            Erro de conexão ao carregar os processos do banco de dados.
+          </p>
+        `;
+      }
+    }
+
+    async function buscarCaptchaProcesso() {
+      const input = document.getElementById('txt-consultar-processo');
+      const numero = input.value.trim();
+      
+      if (!numero) {
+        alert("Por favor, digite o número do processo.");
+        return;
+      }
+
+      const numeroLimpo = numero.replace(/\D/g, '');
+      if (numeroLimpo.length < 15) {
+        alert("Número do processo inválido ou incompleto.");
+        return;
+      }
+
+      logTerminalInfo(`Iniciando consulta pública no TRT-17 para o processo ${numero}...`);
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/processos/captcha/${numeroLimpo}`);
+        const result = await response.json();
+
+        if (result.success && result.challenge) {
+          globalTokenDesafio = result.data.tokenDesafio;
+          globalNumeroProcesso = numeroLimpo;
+
+          document.getElementById('img-captcha-challenge').src = `data:image/jpeg;base64,${result.data.imagem}`;
+          document.getElementById('txt-captcha-resposta').value = "";
+          
+          fecharModais();
+          document.getElementById('modal-captcha-trt').classList.add('active');
+        } else {
+          alert("Não foi possível carregar o captcha do TRT-17. Verifique o número e tente novamente.");
+          logTerminalInfo(`[ERRO] Falha ao solicitar captcha do TRT-17.`, 'error');
+        }
+      } catch (err) {
+        console.error("Erro ao buscar captcha:", err);
+        alert("Erro de comunicação com o servidor.");
+      }
+    }
+
+    async function recarregarCaptcha() {
+      if (globalNumeroProcesso) {
+        logTerminalInfo(`Recarregando captcha do TRT-17...`);
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/processos/captcha/${globalNumeroProcesso}`);
+          const result = await response.json();
+          if (result.success && result.challenge) {
+            globalTokenDesafio = result.data.tokenDesafio;
+            document.getElementById('img-captcha-challenge').src = `data:image/jpeg;base64,${result.data.imagem}`;
+            document.getElementById('txt-captcha-resposta').value = "";
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    async function submeterConsultaProcesso() {
+      const resposta = document.getElementById('txt-captcha-resposta').value.trim();
+      const representa = document.getElementById('sel-representa-polo').value;
+
+      if (!resposta) {
+        alert("Por favor, digite os caracteres do captcha.");
+        return;
+      }
+
+      logTerminalInfo(`Validando captcha e importando processo do TRT-17...`);
+      fecharModais();
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/processos/consultar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            numero: globalNumeroProcesso,
+            tokenDesafio: globalTokenDesafio,
+            valorDesafio: resposta,
+            clienteRepresentado: representa
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          logTerminalInfo(`[SUCESSO] Processo ${result.data.numeroCNJ} importado com sucesso para o cliente ${result.data.clienteName}!`);
+          alert(`Processo ${result.data.numeroCNJ} importado com sucesso!\nCliente cadastrado/atualizado no CRM: ${result.data.clienteName}`);
+          
+          document.getElementById('txt-consultar-processo').value = "";
+          
+          carregarProcessosTabela();
+          carregarDadosDashboard();
+          carregarClientesCRM();
+        } else {
+          alert(`Erro na validação: ${result.error || 'Captcha incorreto'}`);
+          logTerminalInfo(`[FALHA] Validação do captcha recusada pelo TRT-17.`, 'error');
+          buscarCaptchaProcesso();
+        }
+      } catch (err) {
+        console.error("Erro ao submeter captcha:", err);
+        alert("Erro de comunicação com o servidor.");
+      }
+    }
+
+    function verDetalhesProcesso(id) {
+      const proc = listagemProcessosGeral.find(p => p.id === id);
+      if (!proc) return;
+
+      document.getElementById('det-proc-titulo').innerText = `Processo ${proc.numeroCNJ}`;
+      document.getElementById('det-proc-classe').innerText = proc.classe || "ATSum";
+      document.getElementById('det-proc-tribunal').innerText = proc.tribunal;
+      document.getElementById('det-proc-vara').innerText = proc.vara;
+      
+      const badgeText = proc.clienteRepresentado === "RECLAMANTE" ? "Reclamante" : "Reclamada";
+      document.getElementById('det-proc-representa').innerText = badgeText;
+      document.getElementById('det-proc-representa').style.color = proc.clienteRepresentado === "RECLAMANTE" ? "#10B981" : "#EF4444";
+      
+      document.getElementById('det-proc-autor').innerText = proc.poloAtivo || "Não informado";
+      document.getElementById('det-proc-reu').innerText = proc.poloPassivo || "Não informado";
+
+      const containerMov = document.getElementById('det-proc-movimentacoes');
+      containerMov.innerHTML = "";
+
+      let movs = [];
+      try {
+        if (proc.movimentacoes) {
+          movs = JSON.parse(proc.movimentacoes);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      if (movs && movs.length > 0) {
+        movs.forEach(m => {
+          const item = document.createElement('div');
+          item.className = "timeline-item-mov";
+          
+          let dataFormatada = m.data;
+          if (m.data && m.data.includes('-')) {
+            const [ano, mes, dia] = m.data.split('-');
+            dataFormatada = `${dia}/${mes}/${ano}`;
+          }
+
+          item.innerHTML = `
+            <div class="timeline-item-mov-date">${dataFormatada}</div>
+            <div class="timeline-item-mov-title">${m.titulo}</div>
+            <div class="timeline-item-mov-desc">${m.desc}</div>
+          `;
+          containerMov.appendChild(item);
+        });
+      } else {
+        containerMov.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 1rem;">Nenhum andamento registrado para este processo.</p>`;
+      }
+
+      document.getElementById('modal-detalhes-processo').classList.add('active');
     }
 
     // Inicialização ao carregar a página:
