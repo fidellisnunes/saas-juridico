@@ -2404,16 +2404,16 @@
         return;
       }
 
-      logTerminalInfo(`Iniciando consulta pública no TRT-17 para o processo ${numero}...`);
-
+      formatarLog(`Iniciando consulta pública no TRT-17 para o processo ${numero}...`, 'info');
+ 
       try {
         const response = await fetch(`${BACKEND_URL}/api/processos/captcha/${numeroLimpo}`);
         const result = await response.json();
-
+ 
         if (result.success && result.challenge) {
           globalTokenDesafio = result.data.tokenDesafio;
           globalNumeroProcesso = numeroLimpo;
-
+ 
           document.getElementById('img-captcha-challenge').src = `data:image/jpeg;base64,${result.data.imagem}`;
           document.getElementById('txt-captcha-resposta').value = "";
           
@@ -2421,17 +2421,17 @@
           document.getElementById('modal-captcha-trt').classList.add('active');
         } else {
           alert("Não foi possível carregar o captcha do TRT-17. Verifique o número e tente novamente.");
-          logTerminalInfo(`[ERRO] Falha ao solicitar captcha do TRT-17.`, 'error');
+          formatarLog(`[ERRO] Falha ao solicitar captcha do TRT-17.`, 'warn');
         }
       } catch (err) {
         console.error("Erro ao buscar captcha:", err);
         alert("Erro de comunicação com o servidor.");
       }
     }
-
+ 
     async function recarregarCaptcha() {
       if (globalNumeroProcesso) {
-        logTerminalInfo(`Recarregando captcha do TRT-17...`);
+        formatarLog(`Recarregando captcha do TRT-17...`, 'info');
         try {
           const response = await fetch(`${BACKEND_URL}/api/processos/captcha/${globalNumeroProcesso}`);
           const result = await response.json();
@@ -2445,19 +2445,19 @@
         }
       }
     }
-
+ 
     async function submeterConsultaProcesso() {
       const resposta = document.getElementById('txt-captcha-resposta').value.trim();
       const representa = document.getElementById('sel-representa-polo').value;
-
+ 
       if (!resposta) {
         alert("Por favor, digite os caracteres do captcha.");
         return;
       }
-
-      logTerminalInfo(`Validando captcha e importando processo do TRT-17...`);
+ 
+      formatarLog(`Validando captcha e importando processo do TRT-17...`, 'info');
       fecharModais();
-
+ 
       try {
         const response = await fetch(`${BACKEND_URL}/api/processos/consultar`, {
           method: 'POST',
@@ -2469,11 +2469,11 @@
             clienteRepresentado: representa
           })
         });
-
+ 
         const result = await response.json();
-
+ 
         if (result.success) {
-          logTerminalInfo(`[SUCESSO] Processo ${result.data.numeroCNJ} importado com sucesso para o cliente ${result.data.clienteName}!`);
+          formatarLog(`[SUCESSO] Processo ${result.data.numeroCNJ} importado com sucesso para o cliente ${result.data.clienteName}!`, 'success');
           alert(`Processo ${result.data.numeroCNJ} importado com sucesso!\nCliente cadastrado/atualizado no CRM: ${result.data.clienteName}`);
           
           document.getElementById('txt-consultar-processo').value = "";
@@ -2483,7 +2483,7 @@
           carregarClientesCRM();
         } else {
           alert(`Erro na validação: ${result.error || 'Captcha incorreto'}`);
-          logTerminalInfo(`[FALHA] Validação do captcha recusada pelo TRT-17.`, 'error');
+          formatarLog(`[FALHA] Validação do captcha recusada pelo TRT-17.`, 'warn');
           buscarCaptchaProcesso();
         }
       } catch (err) {
