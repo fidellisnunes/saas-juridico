@@ -1623,6 +1623,7 @@
           <div><strong>Tribunal:</strong> <span id="det-proc-tribunal">TRT-17</span></div>
           <div><strong>Órgão Julgador:</strong> <span id="det-proc-vara">11ª Vara do Trabalho</span></div>
           <div><strong>Representando:</strong> <span id="det-proc-representa" style="color: var(--gold-primary); font-weight: bold;">Reclamante</span></div>
+          <div style="grid-column: span 2;"><strong>CPF/CNPJ do Representado:</strong> <span id="det-proc-cpfcnpj" style="color: var(--gold-primary); font-weight: bold;">-</span></div>
           <div style="grid-column: span 2;"><strong>Autor (Polo Ativo):</strong> <span id="det-proc-autor">ANNA LUISA PINTO NEVES</span></div>
           <div style="grid-column: span 2;"><strong>Réu (Polo Passivo):</strong> <span id="det-proc-reu">SFW ALIMENTOS LTDA E OUTROS</span></div>
         </div>
@@ -1647,6 +1648,10 @@
           <div class="form-group" style="margin-bottom: 0;">
             <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">Tribunal (Não editável)</label>
             <input type="text" id="edit-proc-tribunal" readonly style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 4px; color: #888;">
+          </div>
+          <div class="form-group" style="grid-column: span 2; margin-bottom: 0;">
+            <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">CPF/CNPJ do Representado</label>
+            <input type="text" id="edit-proc-cpfcnpj" placeholder="CPF ou CNPJ (apenas números)" style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
           </div>
           <div class="form-group" style="grid-column: span 2; margin-bottom: 0;">
             <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">Autor (Polo Ativo)</label>
@@ -2934,6 +2939,7 @@
       
       document.getElementById('det-proc-autor').innerText = proc.poloAtivo || "Não informado";
       document.getElementById('det-proc-reu').innerText = proc.poloPassivo || "Não informado";
+      document.getElementById('det-proc-cpfcnpj').innerText = (proc.cliente && proc.cliente.cpfCnpj) ? proc.cliente.cpfCnpj : "Não informado";
 
       const containerMov = document.getElementById('det-proc-movimentacoes');
       containerMov.innerHTML = "";
@@ -2983,6 +2989,7 @@
       document.getElementById('edit-proc-tribunal').value = proc.tribunal || "";
       document.getElementById('edit-proc-autor').value = proc.poloAtivo || "";
       document.getElementById('edit-proc-reu').value = proc.poloPassivo || "";
+      document.getElementById('edit-proc-cpfcnpj').value = (proc.cliente && proc.cliente.cpfCnpj) ? proc.cliente.cpfCnpj : "";
 
       // Alternar visualização
       document.getElementById('det-proc-view-container').classList.add('hidden');
@@ -3010,6 +3017,7 @@
       const clienteRepresentado = document.getElementById('edit-proc-representa').value;
       const poloAtivo = document.getElementById('edit-proc-autor').value.trim();
       const poloPassivo = document.getElementById('edit-proc-reu').value.trim();
+      const cpfCnpj = document.getElementById('edit-proc-cpfcnpj').value.trim();
 
       try {
         const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}`, {
@@ -3023,7 +3031,8 @@
             vara,
             clienteRepresentado,
             poloAtivo,
-            poloPassivo
+            poloPassivo,
+            cpfCnpj
           })
         });
 

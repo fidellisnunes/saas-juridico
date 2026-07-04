@@ -705,17 +705,101 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
 // Atualizar dados de um processo manualmente
 app.put('/api/processos/:id', authMiddleware, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { classe, vara, clienteRepresentado, poloAtivo, poloPassivo } = req.body;
+  const { classe, vara, clienteRepresentado, poloAtivo, poloPassivo, cpfCnpj } = req.body;
 
   try {
+    const procAtual = await prisma.processo.findUnique({
+      where: { id },
+      include: { cliente: true }
+    });
+
+    if (!procAtual) {
+      return res.status(404).json({ success: false, error: 'Processo não encontrado.' });
+    }
+
+    const novoPoloAtivo = poloAtivo !== undefined ? poloAtivo : procAtual.poloAtivo;
+    const novoPoloPassivo = poloPassivo !== undefined ? poloPassivo : procAtual.poloPassivo;
+    const novoClienteRepresentado = clienteRepresentado !== undefined ? clienteRepresentado : procAtual.clienteRepresentado;
+
+    // Determinar o nome do representado
+    const nomeRepresentado = novoClienteRepresentado === 'RECLAMANTE' 
+      ? (novoPoloAtivo ? novoPoloAtivo.split(' E ')[0] : 'Representado')
+      : (novoPoloPassivo ? novoPoloPassivo.split(' E ')[0] : 'Representado');
+
+    let finalClienteId = procAtual.clienteId;
+
+    if (cpfCnpj) {
+      const cpfCnpjLimpo = cpfCnpj.replace(/\D/g, '');
+      const formatado = cpfCnpjLimpo.length > 11 
+        ? cpfCnpjLimpo.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+        : cpfCnpjLimpo.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+
+      // Buscar no CRM por CPF/CNPJ
+      let clienteCRM = await prisma.client.findUnique({
+        where: { cpfCnpj: formatado }
+      });
+
+      if (clienteCRM) {
+        // Se existe, atualiza nome
+        clienteCRM = await prisma.client.update({
+          where: { id: clienteCRM.id },
+          data: { name: nomeRepresentado }
+        });
+      } else {
+        // Buscar no CRM por nome
+        clienteCRM = await prisma.client.findFirst({
+          where: { name: { equals: nomeRepresentado, mode: 'insensitive' } }
+        });
+
+        if (clienteCRM) {
+          // Atualiza CPF/CNPJ
+          clienteCRM = await prisma.client.update({
+            where: { id: clienteCRM.id },
+            data: { cpfCnpj: formatado }
+          });
+        } else {
+          // Criar novo
+          clienteCRM = await prisma.client.create({
+            data: {
+              name: nomeRepresentado,
+              type: formatado.length > 14 ? 'PESSOA_JURIDICA' : 'PESSOA_FISICA',
+              cpfCnpj: formatado,
+              email: `${nomeRepresentado.toLowerCase().replace(/\s+/g, '.')}@email.com`,
+              phone: '(27) 99999-0000',
+              status: 'ATIVO',
+              metadata: JSON.stringify({ documentos: [] })
+            }
+          });
+        }
+      }
+      finalClienteId = clienteCRM.id;
+    } else {
+      // Se não enviou CPF/CNPJ mas o nome do representado mudou
+      const clienteVinculado = await prisma.client.findUnique({
+        where: { id: procAtual.clienteId }
+      });
+      if (clienteVinculado && clienteVinculado.name !== nomeRepresentado) {
+        if (clienteVinculado.name.includes('Importado') || clienteVinculado.name.includes('Polo')) {
+          await prisma.client.update({
+            where: { id: clienteVinculado.id },
+            data: { name: nomeRepresentado }
+          });
+        }
+      }
+    }
+
     const processo = await prisma.processo.update({
       where: { id },
       data: {
-        classe,
-        vara,
-        clienteRepresentado,
-        poloAtivo,
-        poloPassivo
+        classe: classe !== undefined ? classe : procAtual.classe,
+        vara: vara !== undefined ? vara : procAtual.vara,
+        clienteRepresentado: novoClienteRepresentado,
+        poloAtivo: novoPoloAtivo,
+        poloPassivo: novoPoloPassivo,
+        clienteId: finalClienteId
+      },
+      include: {
+        cliente: true
       }
     });
 
