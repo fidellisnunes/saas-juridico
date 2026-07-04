@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaS Jurídico - Painel de Controle</title>
+  <title>Fidellis Nunes Advocacia - Painel de Controle</title>
   
   <!-- Fontes Premium -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,18 +22,18 @@
        SISTEMA DE DESIGN & VARIAVEIS (AESTHETIC PREMIUM)
        -------------------------------------------------- */
     :root {
-      --bg-dark: #0B0F19;
-      --bg-card: rgba(22, 28, 45, 0.7);
-      --bg-sidebar: #060913;
-      --border-color: rgba(197, 168, 128, 0.15);
-      --border-glow: rgba(197, 168, 128, 0.3);
-      --text-main: #F3F4F6;
-      --text-muted: #9CA3AF;
+      --bg-dark: #F9F8F6;          /* Premium warm white background */
+      --bg-card: #FFFFFF;          /* Pure white card */
+      --bg-sidebar: #1A1A1A;       /* Dark charcoal sidebar for high-end look */
+      --border-color: rgba(169, 128, 60, 0.18);
+      --border-glow: rgba(169, 128, 60, 0.3);
+      --text-main: #1A1A1A;        /* Rich charcoal text */
+      --text-muted: #5A5A5A;       /* Soft grey text */
       
       /* Tons de Ouro/Bronze para Advocacia */
-      --gold-primary: #C5A880;
-      --gold-hover: #E2C7A1;
-      --gold-gradient: linear-gradient(135deg, #C5A880 0%, #8E6D43 100%);
+      --gold-primary: #A9803C;     /* Matching landing page gold! */
+      --gold-hover: #C5A880;
+      --gold-gradient: linear-gradient(135deg, #A9803C 0%, #C5A880 100%);
       
       /* Cores de Status */
       --color-success: #10B981;
@@ -106,7 +106,7 @@
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background-color: #060913;
+      background-color: #1A1A1A;
       border: 1px solid var(--border-color);
       color: var(--gold-primary);
       display: flex;
@@ -120,7 +120,7 @@
     }
 
     .toggle-sidebar-btn:hover {
-      background-color: rgba(197, 168, 128, 0.15);
+      background-color: rgba(169, 128, 60, 0.15);
       color: var(--text-main);
       transform: scale(1.1);
     }
@@ -128,36 +128,48 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
       margin-bottom: 3rem;
       transition: var(--transition-smooth);
     }
 
     .sidebar.collapsed .brand {
       justify-content: center;
-      gap: 0;
-      padding-left: 0.25rem;
+      padding-left: 0;
     }
 
-    .brand-logo {
-      font-size: 1.5rem;
-      background: var(--gold-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      transition: var(--transition-smooth);
+    .brand-text-container {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
     }
 
     .brand-title {
       font-family: var(--font-serif);
-      font-size: 1.25rem;
-      font-weight: 600;
+      font-size: 1.15rem;
+      font-weight: 700;
       letter-spacing: 1px;
+      color: #FFFFFF;
       transition: opacity 0.25s ease, width 0.25s ease, margin 0.25s ease;
       opacity: 1;
       white-space: nowrap;
     }
 
-    .sidebar.collapsed .brand-title {
+    .brand-subtitle {
+      font-size: 0.6rem;
+      color: var(--gold-primary);
+      letter-spacing: 4px;
+      font-weight: 600;
+      transition: opacity 0.25s ease, width 0.25s ease, margin 0.25s ease;
+      opacity: 1;
+      white-space: nowrap;
+    }
+
+    .sidebar.collapsed .brand-text-container {
+      display: none;
+    }
+
+    .sidebar.collapsed .brand-title,
+    .sidebar.collapsed .brand-subtitle {
       opacity: 0;
       pointer-events: none;
       width: 0;
@@ -485,7 +497,7 @@
 
     .form-control {
       width: 100%;
-      background-color: rgba(10, 14, 25, 0.8);
+      background-color: #FFFFFF;
       border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 0.75rem 1rem;
@@ -528,7 +540,7 @@
       border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 0.5rem;
-      background: rgba(10, 14, 25, 0.4);
+      background: #F9F8F6;
     }
 
     .holiday-tag {
@@ -706,7 +718,7 @@
 
     .table th, .table td {
       padding: 0.9rem 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border-color);
     }
 
     .table th {
@@ -718,7 +730,7 @@
     }
 
     .table tbody tr:hover {
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(169, 128, 60, 0.04);
     }
 
     .cnj-badge {
@@ -830,7 +842,7 @@
     }
     
     .modal-content {
-      background-color: #0F172A;
+      background-color: #FFFFFF;
       border: 1px solid var(--border-color);
       border-radius: 16px;
       width: 500px;
@@ -936,13 +948,13 @@
       color: var(--text-muted);
       text-transform: uppercase;
       padding: 0.5rem 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border-color);
     }
     
     .calendar-cell {
       min-height: 95px;
-      background: rgba(10, 14, 25, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.03);
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 0.4rem;
       display: flex;
@@ -1200,7 +1212,7 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: radial-gradient(circle at center, #1e1e24 0%, #111115 100%);
+      background: radial-gradient(circle at center, #F9F8F6 0%, #EFECE6 100%);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -1213,30 +1225,38 @@
       pointer-events: none;
     }
     .login-card {
-      background: rgba(30, 30, 36, 0.4);
+      background: #FFFFFF;
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(169, 128, 60, 0.2);
       border-radius: 16px;
       padding: 3rem;
       width: 100%;
       max-width: 420px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 20px 50px rgba(169, 128, 60, 0.12);
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    .login-logo {
-      font-size: 3rem;
+    .login-title-group {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--gold-primary);
+      padding-bottom: 0.5rem;
+      width: 100%;
+    }
+    .login-subtitle-brand {
+      font-size: 0.75rem;
       color: var(--gold-primary);
-      margin-bottom: 1rem;
-      text-shadow: 0 0 20px rgba(197, 168, 128, 0.2);
+      letter-spacing: 4px;
+      font-weight: 600;
+      text-align: center;
     }
     .login-title {
+      font-family: var(--font-serif);
       font-size: 1.5rem;
       color: var(--text-main);
       font-weight: 700;
-      margin-bottom: 0.5rem;
       text-align: center;
     }
     .login-subtitle {
@@ -1255,8 +1275,8 @@
     .login-input {
       width: 100%;
       padding: 0.85rem 1rem 0.85rem 2.75rem;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #FFFFFF;
+      border: 1px solid rgba(169, 128, 60, 0.2);
       border-radius: 8px;
       color: var(--text-main);
       font-size: 0.9rem;
@@ -1265,8 +1285,8 @@
     .login-input:focus {
       outline: none;
       border-color: var(--gold-primary);
-      background: rgba(255, 255, 255, 0.06);
-      box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(169, 128, 60, 0.15);
     }
     .login-icon {
       position: absolute;
@@ -1282,8 +1302,8 @@
     .login-btn {
       width: 100%;
       padding: 0.85rem;
-      background: var(--gold-primary);
-      color: #111115;
+      background: var(--gold-gradient);
+      color: #FFFFFF;
       border: none;
       border-radius: 8px;
       font-size: 0.95rem;
@@ -1298,7 +1318,7 @@
     }
     .login-btn:hover {
       background: var(--gold-hover);
-      box-shadow: 0 0 15px rgba(197, 168, 128, 0.3);
+      box-shadow: 0 0 15px rgba(169, 128, 60, 0.3);
     }
     .login-error {
       color: #ff6b6b;
@@ -1326,8 +1346,10 @@
   <!-- TELA DE LOGIN OVERLAY -->
   <div id="login-overlay" class="login-overlay">
     <div class="login-card">
-      <i class="fa-solid fa-scale-balanced login-logo"></i>
-      <div class="login-title">SaaS Jurídico</div>
+      <div class="login-title-group">
+        <div class="login-title">FIDELLIS NUNES</div>
+        <div class="login-subtitle-brand">ADVOCACIA</div>
+      </div>
       <div class="login-subtitle">Gestão e Controle para Escritório de Advocacia</div>
       <div class="login-form">
         <div class="login-input-group">
@@ -1354,8 +1376,10 @@
     </button>
 
     <div class="brand">
-      <i class="fa-solid fa-scale-balanced brand-logo"></i>
-      <span class="brand-title">SaaS Jurídico</span>
+      <div class="brand-text-container">
+        <span class="brand-title">FIDELLIS NUNES</span>
+        <span class="brand-subtitle">ADVOCACIA</span>
+      </div>
     </div>
     
     <nav>
@@ -1372,7 +1396,7 @@
         </li>
         <li>
           <a href="#" class="menu-item" data-tab="processos">
-            <i class="fa-solid fa-scale-balanced"></i> <span>Processos</span>
+            <i class="fa-solid fa-gavel"></i> <span>Processos</span>
           </a>
         </li>
         <li>
