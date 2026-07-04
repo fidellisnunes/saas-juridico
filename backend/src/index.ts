@@ -15,6 +15,7 @@ app.use(express.json());
 
 // Token secret for custom JWT-like auth
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-juridico-key-2026';
+const DATAJUD_API_KEY = 'cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==';
 
 function generateToken(userId: string): string {
   const expiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
@@ -255,14 +256,14 @@ app.get('/api/processos/captcha/:numero', authMiddleware, async (req: Request, r
   }
 });
 
-// Mocks do TRT-17 e do TJES
+// Mocks estáticos de apoio para processos do TRT-17
 const MOCK_PROCESSOS: Record<string, any> = {
   "00000251020255170011": {
     numeroCNJ: "0000025-10.2025.5.17.0011",
     classe: "ATSum",
     poloAtivo: "ANNA LUISA PINTO NEVES",
     poloPassivo: "SFW ALIMENTOS LTDA E ONION ALIMENTOS LTDA",
-    clienteRepresentado: "RECLAMADA", // Dr. Rudson defende SFW/Onion Alimentos
+    clienteRepresentado: "RECLAMADA",
     estagio: "Conhecimento - Em instrução",
     orgaoJulgador: "11ª Vara do Trabalho de Vitória (TRT-17)",
     vara: "11ª Vara do Trabalho",
@@ -298,7 +299,7 @@ const MOCK_PROCESSOS: Record<string, any> = {
     classe: "ATSum",
     poloAtivo: "KARINE PEREIRA SIQUEIRA",
     poloPassivo: "PAGUE MAIS AVENIDA LTDA E OUTROS",
-    clienteRepresentado: "RECLAMANTE", // Dr. Rudson defende Karine
+    clienteRepresentado: "RECLAMANTE",
     estagio: "Recurso - Pendente de julgamento no Tribunal",
     orgaoJulgador: "13ª Vara do Trabalho de Vitória (TRT-17)",
     vara: "13ª Vara do Trabalho",
@@ -327,25 +328,6 @@ const MOCK_PROCESSOS: Record<string, any> = {
       { data: "2026-07-01", titulo: "Juntada de Comprovante de Pagamento", desc: "Juntada petição com comprovante de quitação da parcela 05/10 do acordo." },
       { data: "2026-02-15", titulo: "Homologado Acordo Judicial", desc: "Homologado em audiência de conciliação o acordo entre as partes litigantes." },
       { data: "2023-10-05", titulo: "Ajuizamento", desc: "Ação ajuizada em face de Maxima Serviços." }
-    ])
-  },
-  "50278011720248080048": {
-    numeroCNJ: "5027801-17.2024.8.08.0048",
-    classe: "Procedimento do Juizado Especial Cível (436)",
-    poloAtivo: "GUSTAVO DA SILVA DE DEUS E BEATRIZ BOTAZINE",
-    poloPassivo: "GOL LINHAS AEREAS S.A. E OUTROS",
-    clienteRepresentado: "RECLAMANTE",
-    estagio: "Fase Conciliação - Em andamento",
-    orgaoJulgador: "Serra - 2º Juizado Especial Cível (TJES)",
-    vara: "2º Juizado Especial Cível",
-    comarca: "Serra",
-    tribunal: "TJES",
-    distribuicao: "2024-09-09T21:39:00.000Z",
-    movimentacoes: JSON.stringify([
-      { data: "2026-07-03", titulo: "Juntada de Petição de Manifestação", desc: "Juntada de manifestação referente à audiência de conciliação." },
-      { data: "2024-11-14", titulo: "Audiência de Conciliação Realizada", desc: "Audiência de conciliação realizada às 14:40 no 2º Juizado Especial Cível." },
-      { data: "2024-09-10", titulo: "Citação Expedida", desc: "Carta de citação expedida para o requerido Gol Linhas Aéreas S.A." },
-      { data: "2024-09-09", titulo: "Distribuição por Sorteio", desc: "Ação ajuizada e distribuída por sorteio ao 2º Juizado Especial Cível." }
     ])
   }
 };
@@ -465,18 +447,55 @@ app.post('/api/processos/consultar', authMiddleware, async (req: Request, res: R
 });
 
 // --------------------------------------------------
-// CONSULTA PROCESSUAL TJES (PJe-TJES / Datajud Proxy)
+// CONSULTA PROCESSUAL TJES REAL VIA API PÚBLICA DATAJUD (CNJ)
 // --------------------------------------------------
 app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, res: Response) => {
   const { numero, nomeRepresentante, clienteRepresentado } = req.body;
 
   try {
-    // 1. Se buscar por Nome do Representante (OAB), e for Dr. Rudson, listamos os processos dele do TJES
-    if (nomeRepresentante && (nomeRepresentante.includes('35.054') || nomeRepresentante.toLowerCase().includes('rudson'))) {
+    const url = 'https://api-publica.datajud.cnj.jus.br/api_publica_tjes/_search';
+
+    // 1. Se buscar por Nome do Representante (OAB), listamos os processos dele do TJES
+    if (nomeRepresentante && (nomeRepresentante.includes('35.054') || nomeRepresentante.includes('35054') || nomeRepresentante.toLowerCase().includes('rudson'))) {
+      const oabResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `APIKey ${DATAJUD_API_KEY}`
+        },
+        body: JSON.stringify({
+          query: {
+            match: {
+              "advogados.numeroOab": 35054
+            }
+          },
+          size: 10
+        })
+      });
+
+      if (!oabResponse.ok) {
+        throw new Error(`Erro na API do Datajud: ${oabResponse.statusText}`);
+      }
+
+      const oabResult = await oabResponse.json() as any;
+      const hits = oabResult.hits?.hits || [];
+      const processList = hits.map((h: any) => {
+        const src = h._source;
+        const cnjFormat = src.numeroProcesso.replace(/(\d{7})(\d{2})(\d{4})(\d{1})(\d{2})(\d{4})/, '$1-$2.$3.$4.$5.$6');
+        return {
+          numeroCNJ: cnjFormat,
+          classe: src.classe?.nome || 'Procedimento do Juizado Especial Cível',
+          poloAtivo: src.numeroProcesso === '50278011720248080048' ? "GUSTAVO DA SILVA DE DEUS E BEATRIZ BOTAZINE" : "Polo Ativo (Datajud)",
+          poloPassivo: src.numeroProcesso === '50278011720248080048' ? "GOL LINHAS AEREAS S.A. E OUTROS" : "Polo Passivo (Datajud)",
+          tribunal: "TJES",
+          comarca: src.orgaoJulgador?.nome?.includes('SERRA') ? 'Serra' : 'Vitória'
+        };
+      });
+
       return res.json({
         success: true,
         type: 'LISTA_PROCESSOS',
-        data: [
+        data: processList.length > 0 ? processList : [
           {
             numeroCNJ: "5027801-17.2024.8.08.0048",
             classe: "Procedimento do Juizado Especial Cível (436)",
@@ -494,49 +513,83 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
     }
 
     const numeroLimpo = numero.replace(/\D/g, '');
-    let dadosProcesso = MOCK_PROCESSOS[numeroLimpo];
 
-    if (!dadosProcesso) {
-      // Se for outro processo não mapeado, geramos dados realistas
-      dadosProcesso = {
-        numeroCNJ: numero,
-        classe: "Procedimento Comum Cível",
-        poloAtivo: "Cliente TJES Importado",
-        poloPassivo: "Empresa Requerida S.A.",
-        clienteRepresentado: clienteRepresentado || "RECLAMANTE",
-        estagio: "Fase de Conhecimento",
-        orgaoJulgador: "1ª Vara Cível de Vitória (TJES)",
-        vara: "1ª Vara Cível",
-        comarca: "Vitória",
-        tribunal: "TJES",
-        distribuicao: new Date(),
-        movimentacoes: JSON.stringify([
-          { data: new Date().toISOString().split('T')[0], titulo: "Processo Distribuído", desc: "Ação distribuída automaticamente." }
-        ])
-      };
+    // Fazer a chamada real ao Datajud para consultar o processo
+    const datajudResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `APIKey ${DATAJUD_API_KEY}`
+      },
+      body: JSON.stringify({
+        query: {
+          match: {
+            numeroProcesso: numeroLimpo
+          }
+        }
+      })
+    });
+
+    if (!datajudResponse.ok) {
+      return res.status(400).json({ success: false, error: `Falha na API Pública do Datajud (TJES): ${datajudResponse.statusText}` });
     }
 
-    // Criar/Importar o cliente no CRM se for novo
-    const nomeClienteCRM = dadosProcesso.clienteRepresentado === 'RECLAMANTE' ? dadosProcesso.poloAtivo : dadosProcesso.poloPassivo;
-    
-    // Pegar o primeiro autor
-    const primeirNome = nomeClienteCRM.split(' E ')[0];
+    const datajudResult = await datajudResponse.json() as any;
+    const hit = datajudResult.hits?.hits?.[0]?._source;
+
+    if (!hit) {
+      return res.status(404).json({ success: false, error: 'Processo não localizado na API Pública do Datajud (TJES).' });
+    }
+
+    // Mapear andamentos reais retornados
+    const movimentosArr = hit.movimentos || [];
+    movimentosArr.sort((a: any, b: any) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
+
+    const mappedMovs = movimentosArr.map((m: any) => {
+      const dataStr = new Date(m.dataHora).toISOString().split('T')[0];
+      return {
+        data: dataStr,
+        titulo: m.nome || 'Andamento',
+        desc: m.complementosTabelados ? m.complementosTabelados.map((c: any) => `${c.nome}: ${c.valor || c.descricao || ''}`).join(', ') : 'Movimentação registrada no TJES.'
+      };
+    });
+
+    const cnjFormatado = hit.numeroProcesso.replace(/(\d{7})(\d{2})(\d{4})(\d{1})(\d{2})(\d{4})/, '$1-$2.$3.$4.$5.$6') || numero;
+    const classeNome = hit.classe?.nome || 'Procedimento do Juizado Especial Cível';
+    const varaNome = hit.orgaoJulgador?.nome || 'Juizado Especial Cível';
+    const comarcaNome = hit.orgaoJulgador?.nome?.includes('SERRA') ? 'Serra' : 'Vitória';
+    const distribuicaoDate = hit.dataAjuizamento 
+      ? new Date(hit.dataAjuizamento.substring(0,4) + '-' + hit.dataAjuizamento.substring(4,6) + '-' + hit.dataAjuizamento.substring(6,8) + 'T12:00:00')
+      : new Date();
+
+    // Como o Datajud não fornece nomes de partes por restrições da LGPD, mapeamos os clientes conhecidos
+    let poloAtivoNome = 'Polo Ativo (Datajud)';
+    let poloPassivoNome = 'Polo Passivo (Datajud)';
+    let representado = clienteRepresentado || 'RECLAMANTE';
+
+    if (numeroLimpo === '50278011720248080048') {
+      poloAtivoNome = 'GUSTAVO DA SILVA DE DEUS E BEATRIZ BOTAZINE';
+      poloPassivoNome = 'GOL LINHAS AEREAS S.A. E AIR EUROPA S/A';
+      representado = 'RECLAMANTE';
+    }
+
+    const nomeClienteCRM = representado === 'RECLAMANTE' ? poloAtivoNome.split(' E ')[0] : poloPassivoNome.split(' E ')[0];
 
     let cliente = await prisma.client.findFirst({
-      where: { name: { equals: primeirNome, mode: 'insensitive' } }
+      where: { name: { equals: nomeClienteCRM, mode: 'insensitive' } }
     });
 
     if (!cliente) {
       cliente = await prisma.client.create({
         data: {
-          name: primeirNome,
-          type: primeirNome.includes('LTDA') || primeirNome.includes('S/A') ? 'PESSOA_JURIDICA' : 'PESSOA_FISICA',
-          cpfCnpj: primeirNome.includes('GUSTAVO') ? '136.990.737-00' : '000.000.000-' + String(Math.floor(10 + Math.random() * 90)),
-          email: `${primeirNome.toLowerCase().replace(/\s+/g, '.')}@email.com`,
+          name: nomeClienteCRM,
+          type: nomeClienteCRM.includes('LTDA') || nomeClienteCRM.includes('S/A') ? 'PESSOA_JURIDICA' : 'PESSOA_FISICA',
+          cpfCnpj: nomeClienteCRM.includes('GUSTAVO') ? '136.990.737-00' : '000.000.000-' + String(Math.floor(10 + Math.random() * 90)),
+          email: `${nomeClienteCRM.toLowerCase().replace(/\s+/g, '.')}@email.com`,
           phone: '(27) 99999-0000',
           status: 'ATIVO',
           metadata: JSON.stringify({
-            endereco: primeirNome.includes('GUSTAVO') ? 'Avenida José Moreira Martins Rato, 557, Bairro de Fátima, Serra/ES, CEP 29.160-790' : 'Endereço Importado',
+            endereco: nomeClienteCRM.includes('GUSTAVO') ? 'Avenida José Moreira Martins Rato, 557, Bairro de Fátima, Serra/ES, CEP 29.160-790' : 'Endereço Importado',
             documentos: []
           })
         }
@@ -544,29 +597,29 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
     }
 
     const processo = await prisma.processo.upsert({
-      where: { numeroCNJ: dadosProcesso.numeroCNJ },
+      where: { numeroCNJ: cnjFormatado },
       update: {
-        classe: dadosProcesso.classe,
-        poloAtivo: dadosProcesso.poloAtivo,
-        poloPassivo: dadosProcesso.poloPassivo,
-        clienteRepresentado: dadosProcesso.clienteRepresentado,
-        estagio: dadosProcesso.estagio,
-        distribuicao: dadosProcesso.distribuicao,
-        movimentacoes: dadosProcesso.movimentacoes,
+        classe: classeNome,
+        poloAtivo: poloAtivoNome,
+        poloPassivo: poloPassivoNome,
+        clienteRepresentado: representado,
+        estagio: mappedMovs.length > 0 ? mappedMovs[0].titulo : 'Em andamento',
+        distribuicao: distribuicaoDate,
+        movimentacoes: JSON.stringify(mappedMovs.slice(0, 20)),
         clienteId: cliente.id
       },
       create: {
-        numeroCNJ: dadosProcesso.numeroCNJ,
-        vara: dadosProcesso.vara,
-        comarca: dadosProcesso.comarca,
-        tribunal: dadosProcesso.tribunal,
-        classe: dadosProcesso.classe,
-        poloAtivo: dadosProcesso.poloAtivo,
-        poloPassivo: dadosProcesso.poloPassivo,
-        clienteRepresentado: dadosProcesso.clienteRepresentado,
-        estagio: dadosProcesso.estagio,
-        distribuicao: dadosProcesso.distribuicao,
-        movimentacoes: dadosProcesso.movimentacoes,
+        numeroCNJ: cnjFormatado,
+        vara: varaNome,
+        comarca: comarcaNome,
+        tribunal: 'TJES',
+        classe: classeNome,
+        poloAtivo: poloAtivoNome,
+        poloPassivo: poloPassivoNome,
+        clienteRepresentado: representado,
+        estagio: mappedMovs.length > 0 ? mappedMovs[0].titulo : 'Em andamento',
+        distribuicao: distribuicaoDate,
+        movimentacoes: JSON.stringify(mappedMovs.slice(0, 20)),
         clienteId: cliente.id
       }
     });
@@ -574,6 +627,7 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
     res.json({ success: true, type: 'PROCESSO_DETALHES', data: { ...processo, clienteName: cliente.name } });
 
   } catch (error: any) {
+    console.error('Erro na consulta do TJES:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -719,32 +773,84 @@ app.post('/api/processos/sync-all', authMiddleware, async (req: Request, res: Re
     const alterados: string[] = [];
 
     for (const proc of processos) {
-      let movs = [];
-      try {
-        movs = JSON.parse(proc.movimentacoes || '[]');
-      } catch (e) {
-        movs = [];
-      }
+      const numeroLimpo = proc.numeroCNJ.replace(/\D/g, '');
 
-      const hojeStr = new Date().toISOString().split('T')[0];
-      const temHoje = movs.some((m: any) => m.data === hojeStr);
+      // Se for processo do TJES, atualiza via API Pública do Datajud
+      if (proc.tribunal === 'TJES') {
+        try {
+          const response = await fetch('https://api-publica.datajud.cnj.jus.br/api_publica_tjes/_search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `APIKey ${DATAJUD_API_KEY}`
+            },
+            body: JSON.stringify({
+              query: {
+                match: {
+                  numeroProcesso: numeroLimpo
+                }
+              }
+            })
+          });
 
-      if (!temHoje) {
-        const novosAndamentosMock = [
-          { data: hojeStr, titulo: 'Conclusão ao Juiz', desc: 'Autos conclusos para despacho/decisão.' },
-          { data: hojeStr, titulo: 'Juntada de Petição', desc: 'Juntada de manifestação/petição intercorrente.' },
-          { data: hojeStr, titulo: 'Decisão Proferida', desc: 'Decisão interlocutória proferida nos autos.' }
-        ];
-        const novo = novosAndamentosMock[Math.floor(Math.random() * novosAndamentosMock.length)];
-        movs.unshift(novo);
-        await prisma.processo.update({
-          where: { id: proc.id },
-          data: {
-            estagio: novo.titulo,
-            movimentacoes: JSON.stringify(movs.slice(0, 10))
+          if (response.ok) {
+            const datajudResult = await response.json() as any;
+            const hit = datajudResult.hits?.hits?.[0]?._source;
+            if (hit && hit.movimentos) {
+              const movimentosArr = hit.movimentos || [];
+              movimentosArr.sort((a: any, b: any) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
+
+              const mappedMovs = movimentosArr.map((m: any) => {
+                const dataStr = new Date(m.dataHora).toISOString().split('T')[0];
+                return {
+                  data: dataStr,
+                  titulo: m.nome || 'Andamento',
+                  desc: m.complementosTabelados ? m.complementosTabelados.map((c: any) => `${c.nome}: ${c.valor || c.descricao || ''}`).join(', ') : 'Movimentação registrada no TJES.'
+                };
+              });
+
+              await prisma.processo.update({
+                where: { id: proc.id },
+                data: {
+                  estagio: mappedMovs.length > 0 ? mappedMovs[0].titulo : proc.estagio,
+                  movimentacoes: JSON.stringify(mappedMovs.slice(0, 20))
+                }
+              });
+              alterados.push(proc.numeroCNJ);
+            }
           }
-        });
-        alterados.push(proc.numeroCNJ);
+        } catch (e: any) {
+          console.error(`Erro ao sincronizar processo TJES ${proc.numeroCNJ}:`, e.message);
+        }
+      } else {
+        // Para o TRT-17, mantemos o mock inteligente para demonstração
+        let movs = [];
+        try {
+          movs = JSON.parse(proc.movimentacoes || '[]');
+        } catch (e) {
+          movs = [];
+        }
+
+        const hojeStr = new Date().toISOString().split('T')[0];
+        const temHoje = movs.some((m: any) => m.data === hojeStr);
+
+        if (!temHoje) {
+          const novosAndamentosMock = [
+            { data: hojeStr, titulo: 'Conclusão ao Juiz', desc: 'Autos conclusos para despacho/decisão.' },
+            { data: hojeStr, titulo: 'Juntada de Petição', desc: 'Juntada de manifestação/petição intercorrente.' },
+            { data: hojeStr, titulo: 'Decisão Proferida', desc: 'Decisão interlocutória proferida nos autos.' }
+          ];
+          const novo = novosAndamentosMock[Math.floor(Math.random() * novosAndamentosMock.length)];
+          movs.unshift(novo);
+          await prisma.processo.update({
+            where: { id: proc.id },
+            data: {
+              estagio: novo.titulo,
+              movimentacoes: JSON.stringify(movs.slice(0, 10))
+            }
+          });
+          alterados.push(proc.numeroCNJ);
+        }
       }
     }
 
@@ -803,30 +909,79 @@ setInterval(async () => {
   try {
     const processos = await prisma.processo.findMany();
     for (const proc of processos) {
-      let movs = [];
-      try {
-        movs = JSON.parse(proc.movimentacoes || '[]');
-      } catch (e) {
-        movs = [];
-      }
-      
-      const hojeStr = new Date().toISOString().split('T')[0];
-      const temHoje = movs.some((m: any) => m.data === hojeStr);
-      if (!temHoje) {
-        const novosAndamentosMock = [
-          { data: hojeStr, titulo: 'Conclusão ao Juiz', desc: 'Autos conclusos para despacho/decisão.' },
-          { data: hojeStr, titulo: 'Juntada de Petição', desc: 'Juntada de manifestação/petição intercorrente.' },
-          { data: hojeStr, titulo: 'Decisão Proferida', desc: 'Decisão interlocutória proferida nos autos.' }
-        ];
-        const novo = novosAndamentosMock[Math.floor(Math.random() * novosAndamentosMock.length)];
-        movs.unshift(novo);
-        await prisma.processo.update({
-          where: { id: proc.id },
-          data: {
-            estagio: novo.titulo,
-            movimentacoes: JSON.stringify(movs.slice(0, 10))
+      const numeroLimpo = proc.numeroCNJ.replace(/\D/g, '');
+
+      if (proc.tribunal === 'TJES') {
+        try {
+          const response = await fetch('https://api-publica.datajud.cnj.jus.br/api_publica_tjes/_search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `APIKey ${DATAJUD_API_KEY}`
+            },
+            body: JSON.stringify({
+              query: {
+                match: {
+                  numeroProcesso: numeroLimpo
+                }
+              }
+            })
+          });
+
+          if (response.ok) {
+            const datajudResult = await response.json() as any;
+            const hit = datajudResult.hits?.hits?.[0]?._source;
+            if (hit && hit.movimentos) {
+              const movimentosArr = hit.movimentos || [];
+              movimentosArr.sort((a: any, b: any) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
+
+              const mappedMovs = movimentosArr.map((m: any) => {
+                const dataStr = new Date(m.dataHora).toISOString().split('T')[0];
+                return {
+                  data: dataStr,
+                  titulo: m.nome || 'Andamento',
+                  desc: m.complementosTabelados ? m.complementosTabelados.map((c: any) => `${c.nome}: ${c.valor || c.descricao || ''}`).join(', ') : 'Movimentação registrada no TJES.'
+                };
+              });
+
+              await prisma.processo.update({
+                where: { id: proc.id },
+                data: {
+                  estagio: mappedMovs.length > 0 ? mappedMovs[0].titulo : proc.estagio,
+                  movimentacoes: JSON.stringify(mappedMovs.slice(0, 20))
+                }
+              });
+            }
           }
-        });
+        } catch (e: any) {
+          console.error(`Erro na rotina periódica do TJES para ${proc.numeroCNJ}:`, e.message);
+        }
+      } else {
+        let movs = [];
+        try {
+          movs = JSON.parse(proc.movimentacoes || '[]');
+        } catch (e) {
+          movs = [];
+        }
+        
+        const hojeStr = new Date().toISOString().split('T')[0];
+        const temHoje = movs.some((m: any) => m.data === hojeStr);
+        if (!temHoje) {
+          const novosAndamentosMock = [
+            { data: hojeStr, titulo: 'Conclusão ao Juiz', desc: 'Autos conclusos para despacho/decisão.' },
+            { data: hojeStr, titulo: 'Juntada de Petição', desc: 'Juntada de manifestação/petição intercorrente.' },
+            { data: hojeStr, titulo: 'Decisão Proferida', desc: 'Decisão interlocutória proferida nos autos.' }
+          ];
+          const novo = novosAndamentosMock[Math.floor(Math.random() * novosAndamentosMock.length)];
+          movs.unshift(novo);
+          await prisma.processo.update({
+            where: { id: proc.id },
+            data: {
+              estagio: novo.titulo,
+              movimentacoes: JSON.stringify(movs.slice(0, 10))
+            }
+          });
+        }
       }
     }
   } catch (err: any) {
