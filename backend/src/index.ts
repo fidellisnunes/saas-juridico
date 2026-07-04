@@ -13,6 +13,11 @@ const djen = new DjenService(prisma);
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Token secret for custom JWT-like auth
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-juridico-key-2026';
 const DATAJUD_API_KEY = 'cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==';
@@ -410,12 +415,33 @@ app.post('/api/processos/consultar', authMiddleware, async (req: Request, res: R
       });
     }
 
+    // Buscar se o processo já existe para preservar edições manuais
+    const procExistente = await prisma.processo.findUnique({
+      where: { numeroCNJ: dadosProcesso.numeroCNJ }
+    });
+
+    if (procExistente) {
+      if (procExistente.poloAtivo && procExistente.poloAtivo !== "Polo Ativo" && procExistente.poloAtivo !== "Polo Ativo (Datajud)" && procExistente.poloAtivo !== "Cliente TJES Importado") {
+        dadosProcesso.poloAtivo = procExistente.poloAtivo;
+      }
+      if (procExistente.poloPassivo && procExistente.poloPassivo !== "Polo Passivo" && procExistente.poloPassivo !== "Polo Passivo (Datajud)" && procExistente.poloPassivo !== "Empresa Requerida S.A.") {
+        dadosProcesso.poloPassivo = procExistente.poloPassivo;
+      }
+      if (procExistente.classe && procExistente.classe !== "Procedimento Comum" && procExistente.classe !== "Procedimento Comum Cível" && procExistente.classe !== "Procedimento do Juizado Especial Cível") {
+        dadosProcesso.classe = procExistente.classe;
+      }
+      if (procExistente.vara && procExistente.vara !== "Vara do Trabalho" && procExistente.vara !== "1ª Vara Cível" && procExistente.vara !== "Juizado Especial Cível") {
+        dadosProcesso.vara = procExistente.vara;
+      }
+    }
+
     const processo = await prisma.processo.upsert({
       where: { numeroCNJ: dadosProcesso.numeroCNJ },
       update: {
         classe: dadosProcesso.classe,
         poloAtivo: dadosProcesso.poloAtivo,
         poloPassivo: dadosProcesso.poloPassivo,
+        vara: dadosProcesso.vara, // atualiza também a vara se não for placeholder
         clienteRepresentado: dadosProcesso.clienteRepresentado,
         estagio: dadosProcesso.estagio,
         distribuicao: dadosProcesso.distribuicao,
@@ -530,7 +556,17 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
       })
     });
 
+    const cnjFormatado = numero.replace(/(\d{7})(\d{2})(\d{4})(\d{1})(\d{2})(\d{4})/, '$1-$2.$3.$4.$5.$6') || numero;
+
     if (!datajudResponse.ok) {
+      const procExistente = await prisma.processo.findUnique({
+        where: { numeroCNJ: cnjFormatado },
+        include: { cliente: true }
+      });
+      if (procExistente) {
+        console.log(`[Datajud Fallback] Retornando dados salvos para ${cnjFormatado} devido a erro na API CNJ: ${datajudResponse.statusText}`);
+        return res.json({ success: true, type: 'PROCESSO_DETALHES', data: { ...procExistente, clienteName: procExistente.cliente.name } });
+      }
       return res.status(400).json({ success: false, error: `Falha na API Pública do Datajud (TJES): ${datajudResponse.statusText}` });
     }
 
@@ -538,6 +574,14 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
     const hit = datajudResult.hits?.hits?.[0]?._source;
 
     if (!hit) {
+      // Se não encontrou no Datajud, mas já temos no banco, retornamos o que temos no banco
+      const procExistente = await prisma.processo.findUnique({
+        where: { numeroCNJ: cnjFormatado },
+        include: { cliente: true }
+      });
+      if (procExistente) {
+        return res.json({ success: true, type: 'PROCESSO_DETALHES', data: { ...procExistente, clienteName: procExistente.cliente.name } });
+      }
       return res.status(404).json({ success: false, error: 'Processo não localizado na API Pública do Datajud (TJES).' });
     }
 
@@ -554,7 +598,7 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
       };
     });
 
-    const cnjFormatado = hit.numeroProcesso.replace(/(\d{7})(\d{2})(\d{4})(\d{1})(\d{2})(\d{4})/, '$1-$2.$3.$4.$5.$6') || numero;
+    // cnjFormatado já está definido no topo
     const classeNome = hit.classe?.nome || 'Procedimento do Juizado Especial Cível';
     const varaNome = hit.orgaoJulgador?.nome || 'Juizado Especial Cível';
     const comarcaNome = hit.orgaoJulgador?.nome?.includes('SERRA') ? 'Serra' : 'Vitória';
@@ -596,12 +640,38 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
       });
     }
 
+    // Buscar se o processo já existe para preservar edições manuais
+    const procExistente = await prisma.processo.findUnique({
+      where: { numeroCNJ: cnjFormatado }
+    });
+
+    let poloAtivoSalvar = poloAtivoNome;
+    let poloPassivoSalvar = poloPassivoNome;
+    let classeSalvar = classeNome;
+    let varaSalvar = varaNome;
+
+    if (procExistente) {
+      if (procExistente.poloAtivo && procExistente.poloAtivo !== "Polo Ativo (Datajud)" && procExistente.poloAtivo !== "Cliente TJES Importado") {
+        poloAtivoSalvar = procExistente.poloAtivo;
+      }
+      if (procExistente.poloPassivo && procExistente.poloPassivo !== "Polo Passivo (Datajud)" && procExistente.poloPassivo !== "Empresa Requerida S.A.") {
+        poloPassivoSalvar = procExistente.poloPassivo;
+      }
+      if (procExistente.classe && procExistente.classe !== "Procedimento Comum Cível" && procExistente.classe !== "Procedimento do Juizado Especial Cível" && procExistente.classe !== "Procedimento do Juizado Especial Cível (436)") {
+        classeSalvar = procExistente.classe;
+      }
+      if (procExistente.vara && procExistente.vara !== "1ª Vara Cível" && procExistente.vara !== "Juizado Especial Cível" && procExistente.vara !== "Juizado Especial Cível (436)") {
+        varaSalvar = procExistente.vara;
+      }
+    }
+
     const processo = await prisma.processo.upsert({
       where: { numeroCNJ: cnjFormatado },
       update: {
-        classe: classeNome,
-        poloAtivo: poloAtivoNome,
-        poloPassivo: poloPassivoNome,
+        classe: classeSalvar,
+        poloAtivo: poloAtivoSalvar,
+        poloPassivo: poloPassivoSalvar,
+        vara: varaSalvar,
         clienteRepresentado: representado,
         estagio: mappedMovs.length > 0 ? mappedMovs[0].titulo : 'Em andamento',
         distribuicao: distribuicaoDate,
@@ -610,12 +680,12 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
       },
       create: {
         numeroCNJ: cnjFormatado,
-        vara: varaNome,
+        vara: varaSalvar,
         comarca: comarcaNome,
         tribunal: 'TJES',
-        classe: classeNome,
-        poloAtivo: poloAtivoNome,
-        poloPassivo: poloPassivoNome,
+        classe: classeSalvar,
+        poloAtivo: poloAtivoSalvar,
+        poloPassivo: poloPassivoSalvar,
         clienteRepresentado: representado,
         estagio: mappedMovs.length > 0 ? mappedMovs[0].titulo : 'Em andamento',
         distribuicao: distribuicaoDate,
@@ -628,6 +698,30 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
 
   } catch (error: any) {
     console.error('Erro na consulta do TJES:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Atualizar dados de um processo manualmente
+app.put('/api/processos/:id', authMiddleware, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { classe, vara, clienteRepresentado, poloAtivo, poloPassivo } = req.body;
+
+  try {
+    const processo = await prisma.processo.update({
+      where: { id },
+      data: {
+        classe,
+        vara,
+        clienteRepresentado,
+        poloAtivo,
+        poloPassivo
+      }
+    });
+
+    res.json({ success: true, data: processo });
+  } catch (error: any) {
+    console.error('Erro ao atualizar processo manualmente:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
