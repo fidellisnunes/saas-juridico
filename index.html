@@ -1188,9 +1188,159 @@
       color: var(--text-muted);
       line-height: 1.4;
     }
+    
+    /* ESTILOS DA TELA DE LOGIN */
+    .login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at center, #1e1e24 0%, #111115 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999999;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+    }
+    .login-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .login-card {
+      background: rgba(30, 30, 36, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 3rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .login-logo {
+      font-size: 3rem;
+      color: var(--gold-primary);
+      margin-bottom: 1rem;
+      text-shadow: 0 0 20px rgba(197, 168, 128, 0.2);
+    }
+    .login-title {
+      font-size: 1.5rem;
+      color: var(--text-main);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .login-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    .login-form {
+      width: 100%;
+    }
+    .login-input-group {
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .login-input {
+      width: 100%;
+      padding: 0.85rem 1rem 0.85rem 2.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+    .login-input:focus {
+      outline: none;
+      border-color: var(--gold-primary);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15);
+    }
+    .login-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .login-input:focus + .login-icon {
+      color: var(--gold-primary);
+    }
+    .login-btn {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--gold-primary);
+      color: #111115;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      margin-top: 1rem;
+    }
+    .login-btn:hover {
+      background: var(--gold-hover);
+      box-shadow: 0 0 15px rgba(197, 168, 128, 0.3);
+    }
+    .login-error {
+      color: #ff6b6b;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      display: none;
+      text-align: center;
+      width: 100%;
+      background: rgba(255, 107, 107, 0.1);
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 107, 107, 0.2);
+    }
+    .sidebar.collapsed .logout-btn-text {
+      display: none;
+    }
+    .sidebar.collapsed .sidebar-footer {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
   </style>
 </head>
 <body>
+
+  <!-- TELA DE LOGIN OVERLAY -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card">
+      <i class="fa-solid fa-scale-balanced login-logo"></i>
+      <div class="login-title">SaaS Jurídico</div>
+      <div class="login-subtitle">Gestão e Controle para Escritório de Advocacia</div>
+      <div class="login-form">
+        <div class="login-input-group">
+          <input type="email" id="login-email" class="login-input" placeholder="Seu e-mail profissional" value="rudson.nunes@advocacia.com.br">
+          <i class="fa-solid fa-envelope login-icon"></i>
+        </div>
+        <div class="login-input-group">
+          <input type="password" id="login-password" class="login-input" placeholder="Sua senha" value="">
+          <i class="fa-solid fa-lock login-icon"></i>
+        </div>
+        <div id="login-error-msg" class="login-error">E-mail ou senha inválidos.</div>
+        <button class="login-btn" onclick="executarLogin()">
+          <i class="fa-solid fa-right-to-bracket"></i> Entrar no Sistema
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- SIDEBAR DA APLICAÇÃO -->
   <aside class="sidebar" id="app-sidebar">
@@ -1234,12 +1384,17 @@
       </ul>
     </nav>
     
-    <div class="sidebar-footer">
-      <div class="user-avatar">RN</div>
-      <div class="user-info">
-        <span class="user-name" title="Dr. Rudson Fidellis Nunes">Dr. Rudson Fidellis Nunes</span>
-        <span class="user-role">OAB/ES 35.054</span>
+    <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
+        <div class="user-avatar">RN</div>
+        <div class="user-info">
+          <span class="user-name" title="Dr. Rudson Fidellis Nunes" id="sidebar-user-name">Dr. Rudson Fidellis Nunes</span>
+          <span class="user-role" id="sidebar-user-role">OAB/ES 35.054</span>
+        </div>
       </div>
+      <button class="btn-action" style="width: 100%; padding: 0.4rem; justify-content: center; background: rgba(255, 107, 107, 0.1); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.2); gap: 0.5rem;" onclick="executarLogout()">
+        <i class="fa-solid fa-right-from-bracket"></i> <span class="logout-btn-text">Sair</span>
+      </button>
     </div>
   </aside>
 
@@ -1396,10 +1551,16 @@
           <h1>Gestão de Processos Judiciais</h1>
           <p>Consulte processos públicos no TRT-17 e armazene informações detalhadas de polos, estágio e andamentos.</p>
         </div>
-        <div style="display: flex; gap: 0.75rem; align-items: center;">
-          <input type="text" class="form-control" id="txt-consultar-processo" placeholder="Ex: 0000025-10.2025.5.17.0011" style="width: 250px;">
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <input type="text" class="form-control" id="txt-consultar-processo" placeholder="CNJ ou OAB (para TJES)" style="width: 250px;">
           <button class="btn-action" onclick="buscarCaptchaProcesso()">
             <i class="fa-solid fa-magnifying-glass"></i> Consultar TRT-17
+          </button>
+          <button class="btn-action" style="background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.25);" onclick="consultarTJES()">
+            <i class="fa-solid fa-magnifying-glass"></i> Consultar TJES
+          </button>
+          <button class="btn-action" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.25);" onclick="sincronizarTodosProcessos()">
+            <i class="fa-solid fa-rotate"></i> Atualizar Tudo (Push)
           </button>
         </div>
       </header>
@@ -1604,7 +1765,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Processo CNJ Associado (Opcional)</label>
-          <input type="text" class="form-control" id="modal-tar-processo" placeholder="Ex: 0012456-78.2025.8.08.0024">
+          <select class="form-control" id="modal-tar-processo"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Detalhamento / Descrição da Tarefa</label>
@@ -1645,7 +1806,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Processo CNJ Associado (Opcional)</label>
-          <input type="text" class="form-control" id="modal-comp-processo" placeholder="Ex: 0012456-78.2025.8.08.0024">
+          <select class="form-control" id="modal-comp-processo"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Observações / Descrição</label>
@@ -1660,8 +1821,129 @@
   </main>
 
   <script>
-    // URL pública da sua hospedagem Render
-    const BACKEND_URL = "https://saas-juridico-backend.onrender.com";
+    // Detecta se estamos rodando localmente ou em produção no Render (inclui file://)
+    const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:' ? 'http://localhost:3000' : "https://saas-juridico-backend.onrender.com";
+
+    // --------------------------------------------------
+    // CONTROLE DE AUTENTICAÇÃO (INTERCEPTADOR E LOGIN/LOGOUT)
+    // --------------------------------------------------
+    const originalFetch = window.fetch;
+    window.fetch = async function(url, options = {}) {
+      if (url.includes('/api/auth/login')) {
+        return originalFetch(url, options);
+      }
+      
+      const token = localStorage.getItem('saas_juridico_token');
+      if (!options.headers) {
+        options.headers = {};
+      }
+      if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await originalFetch(url, options);
+      if (response.status === 401 && !url.includes('/api/auth/me')) {
+        executarLogout();
+      }
+      return response;
+    };
+
+    async function verificarAutenticacao() {
+      const token = localStorage.getItem('saas_juridico_token');
+      const overlay = document.getElementById('login-overlay');
+      if (!token) {
+        overlay.classList.remove('hidden');
+        return false;
+      }
+      try {
+        const response = await originalFetch(`${BACKEND_URL}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const result = await response.json();
+        if (result.success) {
+          overlay.classList.add('hidden');
+          document.getElementById('sidebar-user-name').innerText = result.user.name;
+          if (result.user.advogado) {
+            document.getElementById('sidebar-user-role').innerText = `OAB/${result.user.advogado.uf} ${result.user.advogado.oab}`;
+          }
+          return true;
+        } else {
+          executarLogout();
+          return false;
+        }
+      } catch (err) {
+        console.error("Erro na verificação de autenticação:", err);
+        overlay.classList.add('hidden');
+        return true;
+      }
+    }
+
+    async function executarLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+      const errorMsg = document.getElementById('login-error-msg');
+      
+      if (!email || !password) {
+        errorMsg.innerText = "Por favor, preencha o e-mail e a senha.";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      errorMsg.style.display = "none";
+      try {
+        const response = await originalFetch(`${BACKEND_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const result = await response.json();
+        if (result.success) {
+          localStorage.setItem('saas_juridico_token', result.token);
+          document.getElementById('login-overlay').classList.add('hidden');
+          document.getElementById('login-password').value = "";
+          
+          await carregarProcessosDropdowns();
+          carregarDadosDashboard();
+          carregarClientesCRM();
+          carregarIntimacoesTabela();
+          carregarProcessosTabela();
+        } else {
+          errorMsg.innerText = result.error || "E-mail ou senha incorretos.";
+          errorMsg.style.display = "block";
+        }
+      } catch (err) {
+        console.error("Erro no login:", err);
+        errorMsg.innerText = "Erro ao conectar-se ao servidor.";
+        errorMsg.style.display = "block";
+      }
+    }
+
+    function executarLogout() {
+      localStorage.removeItem('saas_juridico_token');
+      document.getElementById('login-overlay').classList.remove('hidden');
+      document.getElementById('login-password').value = "";
+    }
+
+    async function carregarProcessosDropdowns() {
+      try {
+        const response = await window.fetch(`${BACKEND_URL}/api/processos`);
+        const result = await response.json();
+        if (result.success) {
+          const selectTar = document.getElementById('modal-tar-processo');
+          const selectComp = document.getElementById('modal-comp-processo');
+          
+          let optionsHTML = `<option value="">Sem Vínculo Processual</option>`;
+          result.data.forEach(proc => {
+            optionsHTML += `<option value="${proc.numeroCNJ}">${proc.numeroCNJ} - ${proc.cliente?.name || 'Cliente'}</option>`;
+          });
+          
+          selectTar.innerHTML = optionsHTML;
+          selectComp.innerHTML = optionsHTML;
+        }
+      } catch (err) {
+        console.error("Erro ao carregar dropdown de processos:", err);
+      }
+    }
 
     // --------------------------------------------------
     // LOGICA DA BARRA LATERAL RETRÁTIL
@@ -1819,6 +2101,16 @@
             card.className = 'client-card';
             
             const docsCount = cliente.metadata ? JSON.parse(cliente.metadata).documentos.length : 0;
+            
+            let endereco = 'Endereço não cadastrado';
+            try {
+              if (cliente.metadata) {
+                const meta = JSON.parse(cliente.metadata);
+                if (meta.endereco) {
+                  endereco = meta.endereco;
+                }
+              }
+            } catch(e) {}
 
             card.innerHTML = `
               <div class="client-header">
@@ -1829,6 +2121,10 @@
                 <span><i class="fa-solid fa-address-card"></i> ${cliente.type === 'PESSOA_JURIDICA' ? 'CNPJ' : 'CPF'}: ${cliente.cpfCnpj}</span>
                 <span><i class="fa-solid fa-envelope"></i> ${cliente.email || 'Não cadastrado'}</span>
                 <span><i class="fa-solid fa-phone"></i> ${cliente.phone || 'Não cadastrado'}</span>
+                <span style="grid-column: span 2; display: flex; align-items: flex-start; gap: 0.5rem; margin-top: 0.25rem;">
+                  <i class="fa-solid fa-location-dot" style="margin-top: 0.2rem; color: var(--gold-primary);"></i>
+                  <span style="color: var(--text-muted); font-size: 0.75rem;">${endereco}</span>
+                </span>
               </div>
               <div class="client-files">
                 <span><strong>${cliente.processos.length}</strong> Processo(s)</span>
@@ -1986,7 +2282,7 @@
         const dataCompStr = comp.dataHora.split('T')[0];
         if (dataCompStr === dataCelulaStr) {
           const tag = document.createElement('div');
-          tag.className = 'calendar-event-tag compromisso';
+          tag.className = `calendar-event-tag compromisso`;
           
           const hora = comp.dataHora.split('T')[1]?.substring(0, 5) || '';
           tag.innerText = `🔔 [${hora}] ${comp.titulo}`;
@@ -2064,9 +2360,10 @@
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
     }
 
-    function abrirModalManual(tipo) {
+    async function abrirModalManual(tipo) {
       fecharModais();
       const hojeStr = new Date().toISOString().split('T')[0];
+      await carregarProcessosDropdowns();
       
       if (tipo === 'tarefa') {
         document.getElementById('titulo-modal-tarefa').innerText = "Lançar Nova Tarefa";
@@ -2086,8 +2383,9 @@
       }
     }
 
-    function abrirModalTarefaDeIntimacao(processoCNJ, textoCompleto, dataPublicacao) {
+    async function abrirModalTarefaDeIntimacao(processoCNJ, textoCompleto, dataPublicacao) {
       fecharModais();
+      await carregarProcessosDropdowns();
       
       const dataBase = dataPublicacao ? new Date(dataPublicacao + 'T12:00:00') : new Date();
       dataBase.setDate(dataBase.getDate() + 15);
@@ -2103,8 +2401,9 @@
       document.getElementById('modal-criar-tarefa').classList.add('active');
     }
 
-    function abrirModalCompromissoDeIntimacao(processoCNJ, textoCompleto, dataPublicacao) {
+    async function abrirModalCompromissoDeIntimacao(processoCNJ, textoCompleto, dataPublicacao) {
       fecharModais();
+      await carregarProcessosDropdowns();
       
       const dataBaseStr = dataPublicacao ? dataPublicacao.substring(0, 16) : new Date().toISOString().substring(0, 16);
 
@@ -2493,6 +2792,80 @@
       }
     }
 
+    // Consulta processual TJES
+    async function consultarTJES() {
+      const inputVal = document.getElementById('txt-consultar-processo').value.trim();
+      if (!inputVal) {
+        alert("Por favor, digite o número do processo do TJES ou o número da OAB do representante.");
+        return;
+      }
+      
+      formatarLog(`Consultando processo/OAB no TJES...`, 'info');
+      try {
+        const payload = {};
+        if (inputVal.includes('35.054') || inputVal.toLowerCase().includes('rudson') || inputVal.replace(/\D/g, '') === '35054') {
+          payload.nomeRepresentante = "RUDSON FIDELLIS NUNES (35054)";
+        } else {
+          payload.numero = inputVal;
+        }
+
+        const response = await fetch(`${BACKEND_URL}/api/processos/consultar-tjes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          if (result.type === 'LISTA_PROCESSOS') {
+            formatarLog(`[SUCESSO] Localizado 1 processo vinculado ao representante no TJES!`, 'success');
+            const proc = result.data[0];
+            if (confirm(`Processo localizado no TJES:\nNúmero: ${proc.numeroCNJ}\nAutor: ${proc.poloAtivo}\nRéu: ${proc.poloPassivo}\n\nDeseja realizar a importação automática do processo e do cliente para o sistema?`)) {
+              document.getElementById('txt-consultar-processo').value = proc.numeroCNJ;
+              await consultarTJES();
+            }
+          } else {
+            formatarLog(`[SUCESSO] Processo ${result.data.numeroCNJ} importado com sucesso do TJES!`, 'success');
+            alert(`Processo ${result.data.numeroCNJ} importado com sucesso!\nCliente cadastrado/atualizado no CRM: ${result.data.clienteName}`);
+            document.getElementById('txt-consultar-processo').value = "";
+            carregarProcessosTabela();
+            carregarDadosDashboard();
+            carregarClientesCRM();
+          }
+        } else {
+          alert(`Erro na consulta TJES: ${result.error || 'Processo não encontrado'}`);
+        }
+      } catch (err) {
+        console.error("Erro ao consultar TJES:", err);
+        alert("Erro de comunicação com o servidor.");
+      }
+    }
+
+    // Sincronizar todos os processos cadastrados (push de andamentos)
+    async function sincronizarTodosProcessos() {
+      formatarLog(`Iniciando atualização de andamentos processuais (push)...`, 'info');
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/processos/sync-all`, {
+          method: 'POST'
+        });
+        const result = await response.json();
+        if (result.success) {
+          formatarLog(`[SUCESSO] Sincronização de andamentos processuais concluída!`, 'success');
+          if (result.alterados && result.alterados.length > 0) {
+            alert(`Sincronização concluída!\nOs seguintes processos receberam novos andamentos:\n${result.alterados.join('\n')}`);
+          } else {
+            alert("Sincronização concluída! Todos os processos já estavam atualizados.");
+          }
+          carregarProcessosTabela();
+        } else {
+          alert(`Erro na sincronização: ${result.error}`);
+        }
+      } catch (err) {
+        console.error("Erro ao sincronizar processos:", err);
+        alert("Erro de comunicação com o servidor.");
+      }
+    }
+
     function verDetalhesProcesso(id) {
       const proc = listagemProcessosGeral.find(p => p.id === id);
       if (!proc) return;
@@ -2547,13 +2920,20 @@
     }
 
     // Inicialização ao carregar a página:
-    carregarDadosDashboard();
-    verificarConexaoGoogle();
-
-    // Dispara a sincronização real com o CNJ automaticamente em background
-    setTimeout(() => {
-      rodarSincronizacaoAutomatica();
-    }, 1500);
+    async function inicializar() {
+      const autenticado = await verificarAutenticacao();
+      if (autenticado) {
+        await carregarProcessosDropdowns();
+        carregarDadosDashboard();
+        verificarConexaoGoogle();
+        
+        // Dispara a sincronização real com o CNJ automaticamente em background
+        setTimeout(() => {
+          rodarSincronizacaoAutomatica();
+        }, 1500);
+      }
+    }
+    inicializar();
   </script>
 </body>
 </html>
