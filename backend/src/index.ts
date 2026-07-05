@@ -11,7 +11,8 @@ const port = process.env.PORT || 3000;
 const prisma = new PrismaClient();
 const djen = new DjenService(prisma);
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -561,25 +562,7 @@ app.post('/api/processos/consultar', authMiddleware, async (req: Request, res: R
       });
     }
 
-    // Buscar se o processo já existe para preservar edições manuais
-    const procExistente = await prisma.processo.findUnique({
-      where: { numeroCNJ: dadosProcesso.numeroCNJ }
-    });
 
-    if (procExistente) {
-      if (procExistente.poloAtivo && procExistente.poloAtivo !== "Polo Ativo" && procExistente.poloAtivo !== "Polo Ativo (Datajud)" && procExistente.poloAtivo !== "Cliente TJES Importado") {
-        dadosProcesso.poloAtivo = procExistente.poloAtivo;
-      }
-      if (procExistente.poloPassivo && procExistente.poloPassivo !== "Polo Passivo" && procExistente.poloPassivo !== "Polo Passivo (Datajud)" && procExistente.poloPassivo !== "Empresa Requerida S.A.") {
-        dadosProcesso.poloPassivo = procExistente.poloPassivo;
-      }
-      if (procExistente.classe && procExistente.classe !== "Procedimento Comum" && procExistente.classe !== "Procedimento Comum Cível" && procExistente.classe !== "Procedimento do Juizado Especial Cível") {
-        dadosProcesso.classe = procExistente.classe;
-      }
-      if (procExistente.vara && procExistente.vara !== "Vara do Trabalho" && procExistente.vara !== "1ª Vara Cível" && procExistente.vara !== "Juizado Especial Cível") {
-        dadosProcesso.vara = procExistente.vara;
-      }
-    }
 
     const processo = await prisma.processo.upsert({
       where: { numeroCNJ: dadosProcesso.numeroCNJ },
