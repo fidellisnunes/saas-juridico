@@ -82,6 +82,7 @@ model Intimacao {
   fonte          String    @default("DJEN")
   dataPublicacao DateTime
   statusLeitura  Boolean   @default(false)
+  documentoUrl   String?   // Link para o documento/certidão PDF original
   processoId     String?
   processo       Processo? @relation(fields: [processoId], references: [id], onDelete: SetNull)
   advogadoId     String?
