@@ -235,6 +235,54 @@ app.get('/api/processos', authMiddleware, async (req: Request, res: Response) =>
   }
 });
 
+// Listar movimentações recentes de todos os processos (para a seção push do dashboard)
+app.get('/api/processos/recent-movements', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const processos = await prisma.processo.findMany({
+      select: {
+        id: true,
+        numeroCNJ: true,
+        tribunal: true,
+        vara: true,
+        movimentacoes: true
+      }
+    });
+
+    const allMovs: any[] = [];
+    for (const proc of processos) {
+      if (!proc.movimentacoes) continue;
+      try {
+        const parsed = JSON.parse(proc.movimentacoes);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((m: any) => {
+            allMovs.push({
+              processoId: proc.id,
+              numeroCNJ: proc.numeroCNJ,
+              tribunal: proc.tribunal,
+              vara: proc.vara,
+              data: m.data, // YYYY-MM-DD
+              titulo: m.titulo,
+              desc: m.desc
+            });
+          });
+        }
+      } catch (err) {
+        // Ignora erros de parsing para processos individuais
+      }
+    }
+
+    // Ordena por data decrescente
+    allMovs.sort((a: any, b: any) => {
+      return new Date(b.data).getTime() - new Date(a.data).getTime();
+    });
+
+    // Retorna as 5 mais recentes
+    res.json({ success: true, data: allMovs.slice(0, 5) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Buscar Captcha do TRT-17 para um processo específico
 app.get('/api/processos/captcha/:numero', authMiddleware, async (req: Request, res: Response) => {
   const { numero } = req.params;

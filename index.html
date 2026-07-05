@@ -1554,6 +1554,33 @@
         </div>
       </div>
 
+      <!-- NOVA SEÇÃO: ÚLTIMOS ANDAMENTOS PROCESSO (CAPTURA PUSH) -->
+      <div class="panel" style="margin-top: 1.5rem;">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 class="panel-title"><i class="fa-solid fa-square-rss"></i> Últimos Andamentos de Processos (Captura Push Datajud)</h2>
+        </div>
+        <div class="intimacao-table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width: 12%">Data</th>
+                <th style="width: 18%">Processo CNJ</th>
+                <th style="width: 20%">Tribunal / Vara</th>
+                <th style="width: 22%">Andamento</th>
+                <th style="width: 28%">Descrição</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-andamentos">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  Nenhum andamento processual carregado do banco.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
     <!-- CRM CLIENTES TAB -->
@@ -1633,75 +1660,157 @@
       </div>
     </div>
 
-    <!-- MODAL: DETALHES E MOVIMENTAÇÕES DO PROCESSO -->
-    <div class="modal" id="modal-detalhes-processo">
-      <div class="modal-content" style="width: 600px; max-width: 95%;">
-        <div class="modal-header">
-          <h2 class="modal-title" id="det-proc-titulo">Processo 0000025-10.2025.5.17.0011</h2>
-          <button class="btn-close-modal" onclick="fecharModais()"><i class="fa-solid fa-xmark"></i></button>
+    <!-- ABA: DETALHES COMPLETOS DO PROCESSO (TELA CHEIA) -->
+    <div id="detalhes-processo-full" class="tab-content">
+      <header class="header-bar" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 1.25rem;">
+          <button class="btn-action" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.85rem;" onclick="switchTab('processos')">
+            <i class="fa-solid fa-arrow-left"></i> Voltar para Lista
+          </button>
+          <div>
+            <h1 style="font-size: 1.5rem; display: inline-flex; align-items: center; gap: 0.75rem; font-family: var(--font-serif);" id="det-full-cnj-titulo">Processo <span style="color: var(--gold-primary);">0000000-00.0000.0.00.0000</span></h1>
+            <p id="det-full-sub" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Visualização detalhada de andamentos e pareceres processuais</p>
+          </div>
         </div>
-        
-        <!-- Modo Visualização -->
-        <div id="det-proc-view-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
-          <div><strong>Classe:</strong> <span id="det-proc-classe">ATSum</span></div>
-          <div><strong>Tribunal:</strong> <span id="det-proc-tribunal">TRT-17</span></div>
-          <div><strong>Órgão Julgador:</strong> <span id="det-proc-vara">11ª Vara do Trabalho</span></div>
-          <div><strong>Representando:</strong> <span id="det-proc-representa" style="color: var(--gold-primary); font-weight: bold;">Reclamante</span></div>
-          <div style="grid-column: span 2;"><strong>CPF/CNPJ do Representado:</strong> <span id="det-proc-cpfcnpj" style="color: var(--gold-primary); font-weight: bold;">-</span></div>
-          <div style="grid-column: span 2;"><strong>Autor (Polo Ativo):</strong> <span id="det-proc-autor">ANNA LUISA PINTO NEVES</span></div>
-          <div style="grid-column: span 2;"><strong>Réu (Polo Passivo):</strong> <span id="det-proc-reu">SFW ALIMENTOS LTDA E OUTROS</span></div>
+        <div>
+          <span class="sync-badge" id="det-full-estagio-badge" style="background: rgba(245,158,11,0.15); color: var(--gold-primary); border-color: rgba(245,158,11,0.25); font-size: 0.85rem; padding: 0.5rem 1rem;">Estágio: ATSum</span>
+        </div>
+      </header>
+
+      <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 1.5rem; align-items: start;">
+        <!-- COLUNA ESQUERDA: CADASTRO DO PROCESSO & IA -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- Card Informações -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title"><i class="fa-solid fa-briefcase"></i> Cadastro do Processo</h2>
+            </div>
+            
+            <!-- Modo Visualização -->
+            <div id="det-full-view" style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.85rem; padding: 0.25rem 0;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.5rem;">
+                <span style="color: var(--text-muted);">Classe Processual:</span>
+                <span id="det-full-classe" style="font-weight: 500;">ATSum</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.5rem;">
+                <span style="color: var(--text-muted);">Tribunal:</span>
+                <span id="det-full-tribunal" style="font-weight: 500;">TRT-17</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.5rem;">
+                <span style="color: var(--text-muted);">Órgão Julgador:</span>
+                <span id="det-full-vara" style="font-weight: 500;">11ª Vara do Trabalho</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.5rem;">
+                <span style="color: var(--text-muted);">Polo Representado:</span>
+                <span id="det-full-representa" style="font-weight: bold; color: var(--gold-primary);">Reclamante</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.5rem;">
+                <span style="color: var(--text-muted);">CPF/CNPJ do Representado:</span>
+                <span id="det-full-cpfcnpj" style="font-weight: bold;">-</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.5rem;">
+                <span style="color: var(--text-muted);">Polo Ativo (Autor):</span>
+                <span id="det-full-autor" style="font-weight: 500; font-size: 0.8rem; color: #fff;">ANNA LUISA PINTO NEVES</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.25rem; padding-bottom: 0.25rem;">
+                <span style="color: var(--text-muted);">Polo Passivo (Réu):</span>
+                <span id="det-full-reu" style="font-weight: 500; font-size: 0.8rem; color: #fff;">SFW ALIMENTOS LTDA E OUTROS</span>
+              </div>
+            </div>
+
+            <!-- Modo Edição -->
+            <div id="det-full-edit" class="hidden" style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.85rem; padding: 0.25rem 0;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-muted);">Classe</label>
+                <input type="text" id="edit-full-classe" style="width: 100%; padding: 0.45rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-muted);">Órgão Julgador (Vara)</label>
+                <input type="text" id="edit-full-vara" style="width: 100%; padding: 0.45rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-muted);">Representando</label>
+                <select id="edit-full-representa" style="width: 100%; padding: 0.45rem; font-size: 0.85rem; background: #111; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
+                  <option value="RECLAMANTE">RECLAMANTE</option>
+                  <option value="RECLAMADA">RECLAMADA</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-muted);">Tribunal (Não editável)</label>
+                <input type="text" id="edit-full-tribunal" readonly style="width: 100%; padding: 0.45rem; font-size: 0.85rem; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 4px; color: #888;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-muted);">CPF/CNPJ do Representado</label>
+                <input type="text" id="edit-full-cpfcnpj" placeholder="Apenas números" style="width: 100%; padding: 0.45rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-muted);">Autor (Polo Ativo)</label>
+                <input type="text" id="edit-full-autor" style="width: 100%; padding: 0.45rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-muted);">Réu (Polo Passivo)</label>
+                <input type="text" id="edit-full-reu" style="width: 100%; padding: 0.45rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+              <button class="btn-action" id="btn-edit-full" style="flex: 1; justify-content: center;" onclick="habilitarEdicaoFull()">
+                <i class="fa-solid fa-pen-to-square"></i> Editar Informações
+              </button>
+              <button class="btn-action hidden" id="btn-save-full" style="flex: 1; justify-content: center; background: var(--gold-primary); color: #000;" onclick="salvarEdicaoFull()">
+                <i class="fa-solid fa-check"></i> Salvar Alterações
+              </button>
+              <button class="btn-action hidden" id="btn-cancel-full" style="flex: 0.5; justify-content: center; background: rgba(255,255,255,0.05);" onclick="cancelarEdicaoFull()">
+                Cancelar
+              </button>
+            </div>
+          </div>
+
+          <!-- Card de Inteligência Artificial -->
+          <div class="panel" style="border: 1px solid rgba(245,158,11,0.25); background: rgba(245,158,11,0.02);">
+            <div class="panel-header" style="border-bottom-color: rgba(245,158,11,0.15);">
+              <h2 class="panel-title" style="color: var(--gold-primary);"><i class="fa-solid fa-wand-magic-sparkles"></i> Assistente Legal IA</h2>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+              O Assistente analisa a linha do tempo completa do processo, identifica a fase em que se encontra, extrai prazos implícitos e formula recomendações de condutas processuais.
+            </p>
+
+            <button class="btn-action" style="width: 100%; justify-content: center; font-weight: bold; background: var(--primary-gradient); color: #000; border: 1px solid var(--gold-primary); padding: 0.65rem;" onclick="resumirAndamentosComIA()">
+              <i class="fa-solid fa-brain"></i> Elaborar Parecer & Resumo com IA
+            </button>
+
+            <!-- Resumo IA Display -->
+            <div id="ai-summary-block" class="hidden" style="margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.25rem;">
+              <!-- Skeleton Loader -->
+              <div id="ai-skeleton" class="hidden" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--gold-primary); font-size: 0.8rem; font-weight: bold; margin-bottom: 0.25rem;">
+                  <i class="fa-solid fa-spinner fa-spin"></i> <span style="animation: pulse 1.5s infinite;">Analisando andamentos e gerando parecer...</span>
+                </div>
+                <div style="height: 12px; background: rgba(255,255,255,0.05); border-radius: 4px; width: 100%; animation: pulse 1.5s infinite;"></div>
+                <div style="height: 12px; background: rgba(255,255,255,0.05); border-radius: 4px; width: 92%; animation: pulse 1.5s infinite;"></div>
+                <div style="height: 12px; background: rgba(255,255,255,0.05); border-radius: 4px; width: 75%; animation: pulse 1.5s infinite;"></div>
+                <div style="height: 12px; background: rgba(255,255,255,0.05); border-radius: 4px; width: 85%; animation: pulse 1.5s infinite;"></div>
+              </div>
+              
+              <!-- Conteúdo Gerado -->
+              <div id="ai-result" class="hidden" style="font-size: 0.8rem; line-height: 1.5; color: #e4e4e7; background: rgba(255,255,255,0.01); border-left: 3px solid var(--gold-primary); padding-left: 0.75rem;">
+                <!-- Conteúdo injetado por JS -->
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Modo Edição (inicialmente oculto) -->
-        <div id="det-proc-edit-container" class="hidden" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">Classe</label>
-            <input type="text" id="edit-proc-classe" style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
+        <!-- COLUNA DIREITA: TIMELINE HISTÓRICA -->
+        <div class="panel" style="min-height: 500px;">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="panel-title"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Andamentos (Linha do Tempo)</h2>
+            <span style="font-size: 0.75rem; color: var(--text-muted);" id="det-full-movs-count">0 andamentos registrados</span>
           </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">Órgão Julgador (Vara)</label>
-            <input type="text" id="edit-proc-vara" style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
+          
+          <div class="timeline-container" id="det-full-movimentacoes" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0; max-height: 700px; overflow-y: auto;">
+            <!-- Andamentos injetados por JS -->
           </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">Representando</label>
-            <select id="edit-proc-representa" style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: #111; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
-              <option value="RECLAMANTE">RECLAMANTE</option>
-              <option value="RECLAMADA">RECLAMADA</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">Tribunal (Não editável)</label>
-            <input type="text" id="edit-proc-tribunal" readonly style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 4px; color: #888;">
-          </div>
-          <div class="form-group" style="grid-column: span 2; margin-bottom: 0;">
-            <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">CPF/CNPJ do Representado</label>
-            <input type="text" id="edit-proc-cpfcnpj" placeholder="CPF ou CNPJ (apenas números)" style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
-          </div>
-          <div class="form-group" style="grid-column: span 2; margin-bottom: 0;">
-            <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">Autor (Polo Ativo)</label>
-            <input type="text" id="edit-proc-autor" style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
-          </div>
-          <div class="form-group" style="grid-column: span 2; margin-bottom: 0;">
-            <label style="font-size: 0.75rem; margin-bottom: 0.25rem;">Réu (Polo Passivo)</label>
-            <input type="text" id="edit-proc-reu" style="width: 100%; padding: 0.35rem; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff;">
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-          <button class="btn-action" id="btn-edit-proc" style="flex: 1; justify-content: center;" onclick="habilitarEdicaoProcesso()">
-            <i class="fa-solid fa-pen-to-square"></i> Editar Informações
-          </button>
-          <button class="btn-action hidden" id="btn-save-proc" style="flex: 1; justify-content: center; background: var(--gold-primary); color: #000;" onclick="salvarEdicaoProcesso()">
-            <i class="fa-solid fa-check"></i> Salvar Alterações
-          </button>
-          <button class="btn-action hidden" id="btn-cancel-edit-proc" style="flex: 0.5; justify-content: center; background: rgba(255,255,255,0.05);" onclick="cancelarEdicaoProcesso()">
-            Cancelar
-          </button>
-        </div>
-
-        <h3 style="font-family: var(--font-serif); font-size: 1rem; margin-bottom: 0.75rem;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Andamentos</h3>
-        <div class="timeline-container" id="det-proc-movimentacoes" style="max-height: 250px; overflow-y: auto; padding-right: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
-          <!-- Movimentações injetadas por JS -->
         </div>
       </div>
     </div>
@@ -2122,7 +2231,16 @@
 
     function switchTab(tabId) {
       const targetMenu = document.querySelector(`.menu-item[data-tab="${tabId}"]`);
-      if (targetMenu) targetMenu.click();
+      if (targetMenu) {
+        targetMenu.click();
+      } else {
+        // Abas especiais que não estão no menu lateral (ex: detalhes-processo-full)
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+        const targetTab = document.getElementById(tabId);
+        if (targetTab) targetTab.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
 
     async function carregarDadosDashboard() {
@@ -2159,6 +2277,7 @@
           }
 
           await carregarUltimasIntimacoesDashboard();
+          await carregarUltimosAndamentosDashboard();
         }
       } catch (error) {
         console.error("Erro ao carregar dados da dashboard:", error);
@@ -2206,6 +2325,48 @@
         }
       } catch (error) {
         console.error("Erro ao carregar últimas intimações na dashboard:", error);
+      }
+    }
+
+    async function carregarUltimosAndamentosDashboard() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/processos/recent-movements`);
+        const result = await response.json();
+
+        if (result.success) {
+          const tbody = document.getElementById('dashboard-andamentos');
+          tbody.innerHTML = "";
+
+          if (result.data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nenhum andamento processual capturado. A sincronização de processos trará novidades.</td></tr>`;
+            return;
+          }
+
+          result.data.forEach(item => {
+            const tr = document.createElement('tr');
+            
+            let dataFormatada = item.data;
+            if (item.data && item.data.includes('-')) {
+              const [ano, mes, dia] = item.data.split('-');
+              dataFormatada = `${dia}/${mes}/${ano}`;
+            }
+
+            tr.innerHTML = `
+              <td><strong>${dataFormatada}</strong></td>
+              <td>
+                <span class="cnj-badge" style="cursor: pointer; text-decoration: underline;" onclick="verDetalhesProcesso('${item.processoId}')" title="Clique para abrir detalhes do processo">
+                  ${item.numeroCNJ}
+                </span>
+              </td>
+              <td><span style="color: #60A5FA; font-weight: 500;"><i class="fa-solid fa-gavel"></i> ${item.tribunal}</span><br><span style="font-size: 0.75rem; color: var(--text-muted);">${item.vara || ''}</span></td>
+              <td><strong style="color: var(--gold-primary);">${item.titulo}</strong></td>
+              <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.desc}">${item.desc}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao carregar últimos andamentos na dashboard:", error);
       }
     }
 
@@ -3172,22 +3333,31 @@
       if (!proc) return;
 
       globalEditProcessoId = id;
-      cancelarEdicaoProcesso(); // Abre em modo visualização por padrão
+      cancelarEdicaoFull(); // Abre em modo visualização por padrão
 
-      document.getElementById('det-proc-titulo').innerText = `Processo ${proc.numeroCNJ}`;
-      document.getElementById('det-proc-classe').innerText = proc.classe || "ATSum";
-      document.getElementById('det-proc-tribunal').innerText = proc.tribunal;
-      document.getElementById('det-proc-vara').innerText = proc.vara;
+      document.getElementById('det-full-cnj-titulo').innerHTML = `Processo <span style="color: var(--gold-primary); font-family: var(--font-serif);">${proc.numeroCNJ}</span>`;
+      document.getElementById('det-full-classe').innerText = proc.classe || "ATSum";
+      document.getElementById('det-full-tribunal').innerText = proc.tribunal;
+      document.getElementById('det-full-vara').innerText = proc.vara || "Não informado";
       
       const badgeText = proc.clienteRepresentado === "RECLAMANTE" ? "Reclamante" : "Reclamada";
-      document.getElementById('det-proc-representa').innerText = badgeText;
-      document.getElementById('det-proc-representa').style.color = proc.clienteRepresentado === "RECLAMANTE" ? "#10B981" : "#EF4444";
+      document.getElementById('det-full-representa').innerText = badgeText;
+      document.getElementById('det-full-representa').style.color = proc.clienteRepresentado === "RECLAMANTE" ? "#10B981" : "#EF4444";
       
-      document.getElementById('det-proc-autor').innerText = proc.poloAtivo || "Não informado";
-      document.getElementById('det-proc-reu').innerText = proc.poloPassivo || "Não informado";
-      document.getElementById('det-proc-cpfcnpj').innerText = (proc.cliente && proc.cliente.cpfCnpj) ? proc.cliente.cpfCnpj : "Não informado";
+      document.getElementById('det-full-autor').innerText = proc.poloAtivo || "Não informado";
+      document.getElementById('det-full-reu').innerText = proc.poloPassivo || "Não informado";
+      document.getElementById('det-full-cpfcnpj').innerText = (proc.cliente && proc.cliente.cpfCnpj) ? proc.cliente.cpfCnpj : "Não informado";
+      
+      document.getElementById('det-full-estagio-badge').innerText = `Estágio: ${proc.estagio || 'Análise'}`;
 
-      const containerMov = document.getElementById('det-proc-movimentacoes');
+      // Reset bloco de IA
+      document.getElementById('ai-summary-block').classList.add('hidden');
+      document.getElementById('ai-skeleton').classList.add('hidden');
+      document.getElementById('ai-result').classList.add('hidden');
+      document.getElementById('ai-result').innerHTML = "";
+
+      // Movimentações
+      const containerMov = document.getElementById('det-full-movimentacoes');
       containerMov.innerHTML = "";
 
       let movs = [];
@@ -3198,6 +3368,8 @@
       } catch (err) {
         console.error(err);
       }
+
+      document.getElementById('det-full-movs-count').innerText = `${movs.length} andamentos registrados`;
 
       if (movs && movs.length > 0) {
         movs.forEach(m => {
@@ -3218,52 +3390,49 @@
           containerMov.appendChild(item);
         });
       } else {
-        containerMov.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 1rem;">Nenhum andamento registrado para este processo.</p>`;
+        containerMov.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 2rem;">Nenhum andamento registrado para este processo.</p>`;
       }
 
-      document.getElementById('modal-detalhes-processo').classList.add('active');
+      switchTab('detalhes-processo-full');
     }
 
-    function habilitarEdicaoProcesso() {
+    function habilitarEdicaoFull() {
       const proc = listagemProcessosGeral.find(p => p.id === globalEditProcessoId);
       if (!proc) return;
 
-      // Preencher campos
-      document.getElementById('edit-proc-classe').value = proc.classe || "";
-      document.getElementById('edit-proc-vara').value = proc.vara || "";
-      document.getElementById('edit-proc-representa').value = proc.clienteRepresentado || "RECLAMANTE";
-      document.getElementById('edit-proc-tribunal').value = proc.tribunal || "";
-      document.getElementById('edit-proc-autor').value = proc.poloAtivo || "";
-      document.getElementById('edit-proc-reu').value = proc.poloPassivo || "";
-      document.getElementById('edit-proc-cpfcnpj').value = (proc.cliente && proc.cliente.cpfCnpj) ? proc.cliente.cpfCnpj : "";
+      document.getElementById('edit-full-classe').value = proc.classe || "";
+      document.getElementById('edit-full-vara').value = proc.vara || "";
+      document.getElementById('edit-full-representa').value = proc.clienteRepresentado || "RECLAMANTE";
+      document.getElementById('edit-full-tribunal').value = proc.tribunal || "";
+      document.getElementById('edit-full-autor').value = proc.poloAtivo || "";
+      document.getElementById('edit-full-reu').value = proc.poloPassivo || "";
+      document.getElementById('edit-full-cpfcnpj').value = (proc.cliente && proc.cliente.cpfCnpj) ? proc.cliente.cpfCnpj : "";
 
-      // Alternar visualização
-      document.getElementById('det-proc-view-container').classList.add('hidden');
-      document.getElementById('det-proc-edit-container').classList.remove('hidden');
+      document.getElementById('det-full-view').classList.add('hidden');
+      document.getElementById('det-full-edit').classList.remove('hidden');
 
-      // Alternar botões
-      document.getElementById('btn-edit-proc').classList.add('hidden');
-      document.getElementById('btn-save-proc').classList.remove('hidden');
-      document.getElementById('btn-cancel-edit-proc').classList.remove('hidden');
+      document.getElementById('btn-edit-full').classList.add('hidden');
+      document.getElementById('btn-save-full').classList.remove('hidden');
+      document.getElementById('btn-cancel-full').classList.remove('hidden');
     }
 
-    function cancelarEdicaoProcesso() {
-      document.getElementById('det-proc-view-container').classList.remove('hidden');
-      document.getElementById('det-proc-edit-container').classList.add('hidden');
+    function cancelarEdicaoFull() {
+      document.getElementById('det-full-view').classList.remove('hidden');
+      document.getElementById('det-full-edit').classList.add('hidden');
 
-      document.getElementById('btn-edit-proc').classList.remove('hidden');
-      document.getElementById('btn-save-proc').classList.add('hidden');
-      document.getElementById('btn-cancel-edit-proc').classList.add('hidden');
+      document.getElementById('btn-edit-full').classList.remove('hidden');
+      document.getElementById('btn-save-full').classList.add('hidden');
+      document.getElementById('btn-cancel-full').classList.add('hidden');
     }
 
-    async function salvarEdicaoProcesso() {
+    async function salvarEdicaoFull() {
       const token = localStorage.getItem('saas_juridico_token');
-      const classe = document.getElementById('edit-proc-classe').value.trim();
-      const vara = document.getElementById('edit-proc-vara').value.trim();
-      const clienteRepresentado = document.getElementById('edit-proc-representa').value;
-      const poloAtivo = document.getElementById('edit-proc-autor').value.trim();
-      const poloPassivo = document.getElementById('edit-proc-reu').value.trim();
-      const cpfCnpj = document.getElementById('edit-proc-cpfcnpj').value.trim();
+      const classe = document.getElementById('edit-full-classe').value.trim();
+      const vara = document.getElementById('edit-full-vara').value.trim();
+      const clienteRepresentado = document.getElementById('edit-full-representa').value;
+      const poloAtivo = document.getElementById('edit-full-autor').value.trim();
+      const poloPassivo = document.getElementById('edit-full-reu').value.trim();
+      const cpfCnpj = document.getElementById('edit-full-cpfcnpj').value.trim();
 
       try {
         const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}`, {
@@ -3284,13 +3453,11 @@
 
         const result = await response.json();
         if (result.success) {
-          // Atualizar lista local
           const index = listagemProcessosGeral.findIndex(p => p.id === globalEditProcessoId);
           if (index !== -1) {
             listagemProcessosGeral[index] = result.data;
           }
           
-          // Recarregar tabela e atualizar visualização
           await carregarProcessosTabela();
           verDetalhesProcesso(globalEditProcessoId);
           alert("Processo atualizado com sucesso!");
@@ -3301,6 +3468,76 @@
         console.error("Erro ao salvar processo:", err);
         alert("Erro de comunicação com o servidor.");
       }
+    }
+
+    async function resumirAndamentosComIA() {
+      const proc = listagemProcessosGeral.find(p => p.id === globalEditProcessoId);
+      if (!proc) return;
+
+      const aiBlock = document.getElementById('ai-summary-block');
+      const aiSkeleton = document.getElementById('ai-skeleton');
+      const aiResult = document.getElementById('ai-result');
+
+      aiBlock.classList.remove('hidden');
+      aiSkeleton.classList.remove('hidden');
+      aiResult.classList.add('hidden');
+      aiResult.innerHTML = "";
+
+      // Simular delay de processamento da IA de 2.0 segundos
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      let movs = [];
+      try {
+        if (proc.movimentacoes) movs = JSON.parse(proc.movimentacoes);
+      } catch(e) {}
+
+      // Lógica de análise inteligente dinâmica baseada nos andamentos reais
+      let estagioAtual = proc.estagio || "Análise Geral";
+      let parecerHTML = "";
+      
+      let temAudiencia = movs.some(m => m.titulo.toLowerCase().includes('audiência') || m.desc.toLowerCase().includes('audiencia'));
+      let temDecisao = movs.some(m => m.titulo.toLowerCase().includes('decisão') || m.desc.toLowerCase().includes('decisao') || m.titulo.toLowerCase().includes('despacho') || m.titulo.toLowerCase().includes('sentença'));
+      let temPeticao = movs.some(m => m.titulo.toLowerCase().includes('petição') || m.desc.toLowerCase().includes('peticao'));
+      let temSentenca = movs.some(m => m.titulo.toLowerCase().includes('sentença') || m.desc.toLowerCase().includes('sentenca') || m.titulo.toLowerCase().includes('julgada'));
+
+      parecerHTML += `<p style="margin-bottom: 0.75rem;"><strong>🔍 Parecer de Admissibilidade & Fase Processual:</strong><br>O processo encontra-se na fase de <strong>${estagioAtual}</strong> perante a <strong>${proc.vara || 'Vara de origem'}</strong> do tribunal <strong>${proc.tribunal}</strong>. O representado figura como <strong>${proc.clienteRepresentado === 'RECLAMANTE' ? 'Autor (Polo Ativo)' : 'Réu (Polo Passivo)'}</strong>.</p>`;
+
+      parecerHTML += `<p style="margin-bottom: 0.75rem;"><strong>📋 Resumo dos Andamentos Recentes:</strong><br>`;
+      if (movs.length > 0) {
+        parecerHTML += `Identificamos que o último andamento relevante ocorreu em <strong>${movs[0].data.split('-').reverse().join('/')}</strong>, tratando-se de: <em>"${movs[0].titulo}"</em>. `;
+        if (temDecisao) {
+          parecerHTML += `Houve decisão/despacho recente proferido pelo juízo, demandando análise imediata do teor para controle de prazos. `;
+        }
+        if (temPeticao) {
+          parecerHTML += `Foram juntadas petições pelas partes recentemente, indicando movimentação ativa no polo adverso. `;
+        }
+        if (temAudiencia) {
+          parecerHTML += `Há registro ou designação de audiência na pauta deste processo. `;
+        }
+      } else {
+        parecerHTML += `Não há andamentos detalhados capturados recentemente. Recomenda-se realizar uma consulta manual forçada para obter a autuação atualizada. `;
+      }
+      parecerHTML += `</p>`;
+
+      parecerHTML += `<p style="margin-bottom: 0.75rem;"><strong>💡 Recomendações de Ações da IA:</strong><br>`;
+      if (temSentenca) {
+        parecerHTML += `• <strong>Prazo Recursal</strong>: Sentença proferida. Controlar o prazo de 8 dias úteis para interposição de Recurso Ordinário (Justiça do Trabalho) ou 15 dias úteis para Apelação (Cível).<br>`;
+      } else if (temDecisao) {
+        parecerHTML += `• <strong>Controle de Prazo</strong>: Avaliar se há intimação específica com prazo de 5 ou 15 dias para manifestação sobre o despacho/decisão.<br>`;
+      }
+      if (temAudiencia) {
+        parecerHTML += `• <strong>Preparação de Pauta</strong>: Entrar em contato com o cliente <strong>${proc.poloAtivo}</strong> para alinhar depoimentos, preparar testemunhas e separar documentos necessários.<br>`;
+      }
+      parecerHTML += `• <strong>Relacionamento CRM</strong>: Enviar status simplificado deste andamento para o cliente de forma proativa (via e-mail ou WhatsApp).<br>`;
+      parecerHTML += `• <strong>Diligência</strong>: Conferir anexos e mídias do processo no sistema do PJe/Tribunal local.</p>`;
+
+      parecerHTML += `<p style="font-size: 0.75rem; color: var(--gold-primary); margin-top: 0.5rem; font-style: italic; font-weight: 500;">
+        <i class="fa-solid fa-circle-info"></i> Análise preditiva baseada nos andamentos extraídos da API pública do Datajud (CNJ).
+      </p>`;
+
+      aiSkeleton.classList.add('hidden');
+      aiResult.classList.remove('hidden');
+      aiResult.innerHTML = parecerHTML;
     }
 
     // Inicialização ao carregar a página:
