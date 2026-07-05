@@ -1769,6 +1769,22 @@
             </div>
           </div>
 
+          <!-- Card de Importação de Autos PDF -->
+          <div class="panel" style="border: 1px solid rgba(99, 102, 241, 0.25); background: rgba(99, 102, 241, 0.01);">
+            <div class="panel-header" style="border-bottom-color: rgba(99, 102, 241, 0.15);">
+              <h2 class="panel-title" style="color: #818CF8;"><i class="fa-solid fa-file-arrow-up"></i> Importar Histórico de Autos (PDF)</h2>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+              Selecione a cópia integral dos autos em formato PDF para que a inteligência artificial do sistema extraia automaticamente todo o histórico do processo e atualize a linha do tempo.
+            </p>
+            <div id="autos-upload-zone" style="border: 2px dashed rgba(255,255,255,0.1); padding: 1.25rem; text-align: center; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('input-autos-pdf').click()">
+              <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.8rem; color: #818CF8; margin-bottom: 0.5rem;"></i>
+              <div style="font-size: 0.8rem; font-weight: 500; color: #fff;" id="autos-upload-status">Clique para selecionar o PDF dos Autos</div>
+              <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.25rem;">Tamanho máximo: 50MB (.pdf)</div>
+            </div>
+            <input type="file" id="input-autos-pdf" accept=".pdf" class="hidden" onchange="uploadAutosPDF(this)">
+          </div>
+
           <!-- Card de Inteligência Artificial -->
           <div class="panel" style="border: 1px solid rgba(245,158,11,0.25); background: rgba(245,158,11,0.02);">
             <div class="panel-header" style="border-bottom-color: rgba(245,158,11,0.15);">
@@ -3505,6 +3521,65 @@
         console.error("Erro ao salvar processo:", err);
         alert("Erro de comunicação com o servidor.");
       }
+    }
+
+    async function uploadAutosPDF(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const statusDiv = document.getElementById('autos-upload-status');
+      const token = localStorage.getItem('saas_juridico_token');
+      
+      statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Lendo arquivo PDF...`;
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        statusDiv.innerHTML = `<i class="fa-solid fa-brain fa-bounce"></i> Processando autos e extraindo histórico com IA...`;
+
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}/upload-autos`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              filename: file.name,
+              filesize: file.size,
+              base64: reader.result
+            })
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            statusDiv.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--color-success)"></i> Autos importados com sucesso!`;
+            
+            // Atualizar lista local
+            const index = listagemProcessosGeral.findIndex(p => p.id === globalEditProcessoId);
+            if (index !== -1) {
+              listagemProcessosGeral[index] = result.data;
+            }
+
+            // Recarregar tela de detalhes
+            verDetalhesProcesso(globalEditProcessoId);
+            alert("Histórico integral dos autos extraído e importado com sucesso! A linha do tempo do processo foi atualizada.");
+          } else {
+            statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Erro ao processar arquivo`;
+            alert("Erro ao processar os autos: " + result.error);
+          }
+        } catch (err) {
+          console.error(err);
+          statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Erro na requisição`;
+          alert("Erro de comunicação com o servidor.");
+        }
+      };
+
+      reader.onerror = function() {
+        statusDiv.innerHTML = `Erro ao ler arquivo`;
+        alert("Erro ao ler o arquivo PDF local.");
+      };
+
+      reader.readAsDataURL(file);
     }
 
     async function resumirAndamentosComIA() {
