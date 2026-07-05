@@ -1445,7 +1445,7 @@
       </header>
 
       <section class="stats-grid">
-        <div class="stat-card">
+        <div class="stat-card" style="cursor: pointer;" onclick="switchTab('processos')" title="Ver todos os processos">
           <div>
             <div class="stat-label">Processos em Controle</div>
             <div class="stat-value" id="stats-processos">0</div>
@@ -1453,7 +1453,7 @@
           <div class="stat-icon"><i class="fa-solid fa-briefcase"></i></div>
         </div>
         
-        <div class="stat-card">
+        <div class="stat-card" style="cursor: pointer;" onclick="switchTab('djen')" title="Ver intimações">
           <div>
             <div class="stat-label">Intimações DJEN / PJe</div>
             <div class="stat-value" id="stats-intimacoes">0</div>
@@ -1461,7 +1461,7 @@
           <div class="stat-icon"><i class="fa-solid fa-envelope-open-text"></i></div>
         </div>
         
-        <div class="stat-card">
+        <div class="stat-card" style="cursor: pointer;" onclick="switchTab('clientes')" title="Ver clientes">
           <div>
             <div class="stat-label">Clientes Cadastrados</div>
             <div class="stat-value" id="stats-clientes">0</div>
@@ -1469,7 +1469,7 @@
           <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
         </div>
         
-        <div class="stat-card">
+        <div class="stat-card" style="cursor: pointer;" onclick="switchTab('agenda')" title="Ver prazos e agenda">
           <div>
             <div class="stat-label">Prazos Ativos</div>
             <div class="stat-value" id="stats-prazos">0</div>
@@ -1892,6 +1892,56 @@
         <button class="btn-action" style="width: 100%; justify-content: center; margin-top: 1.5rem;" onclick="salvarCompromisso()">
           <i class="fa-solid fa-calendar-check"></i> Salvar Compromisso no Banco
         </button>
+      </div>
+    </div>
+
+    <!-- MODAL: GERENCIAR EVENTO (editar/excluir tarefa ou compromisso) -->
+    <div class="modal" id="modal-gerenciar-evento">
+      <div class="modal-content" style="max-width: 520px;">
+        <div class="modal-header">
+          <h2 class="modal-title" id="ger-modal-titulo">Gerenciar Evento</h2>
+          <button class="btn-close-modal" onclick="fecharModais()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <input type="hidden" id="ger-evento-id">
+        <input type="hidden" id="ger-evento-tipo">
+        <div class="form-group">
+          <label class="form-label">Título</label>
+          <input type="text" class="form-control" id="ger-titulo" placeholder="Título do evento">
+        </div>
+        <div class="form-group" id="ger-group-tipo">
+          <label class="form-label">Tipo</label>
+          <select class="form-control" id="ger-tipo">
+            <option value="CUMPRIMENTO_PRAZO">Cumprimento de Prazo</option>
+            <option value="CONTATO_CLIENTE">Contato com Cliente</option>
+            <option value="DILIGENCIA">Diligência</option>
+            <option value="AUDIENCIA">Audiência</option>
+            <option value="REUNIAO">Reunião</option>
+            <option value="OUTROS">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="ger-label-data">Data de Vencimento</label>
+          <input type="datetime-local" class="form-control" id="ger-data">
+        </div>
+        <div class="form-group" id="ger-group-local">
+          <label class="form-label">Local / Link</label>
+          <input type="text" class="form-control" id="ger-local" placeholder="Ex: Sala de Audiências Virtual">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descrição / Observações</label>
+          <textarea class="form-control" id="ger-descricao" rows="3" style="resize: none;"></textarea>
+        </div>
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap;">
+          <button class="btn-action" id="ger-btn-concluir" onclick="gerenciarAlterarStatus()" style="flex: 1; justify-content: center;">
+            <i class="fa-solid fa-circle-check"></i> <span id="ger-btn-concluir-label">Marcar como Concluída</span>
+          </button>
+          <button class="btn-action" onclick="gerenciarSalvar()" style="flex: 1; justify-content: center; background: var(--primary-gradient);">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações
+          </button>
+          <button onclick="gerenciarExcluir()" style="flex: 0 0 auto; padding: 0.7rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; background: rgba(239,68,68,0.15); color: #ef4444; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-trash"></i> Excluir
+          </button>
+        </div>
       </div>
     </div>
 
@@ -2344,11 +2394,12 @@
           const tag = document.createElement('div');
           tag.className = `calendar-event-tag tarefa ${tar.status === 'CONCLUIDA' ? 'concluida' : ''}`;
           tag.innerText = `📋 ${tar.titulo}`;
-          tag.title = `${tar.titulo} (${tar.descricao || 'Sem descrição'})`;
+          tag.title = `Clique para gerenciar: ${tar.titulo}`;
+          tag.style.cursor = 'pointer';
           
           tag.onclick = (e) => {
             e.stopPropagation();
-            concluirTarefaPeloCalendario(tar.id, tar.status === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE');
+            abrirModalGerenciarEvento('tarefa', tar);
           };
 
           eventsContainer.appendChild(tag);
@@ -2363,8 +2414,14 @@
           
           const hora = comp.dataHora.split('T')[1]?.substring(0, 5) || '';
           tag.innerText = `🔔 [${hora}] ${comp.titulo}`;
-          tag.title = `${comp.titulo} - Local: ${comp.local || 'Não definido'}`;
+          tag.title = `Clique para gerenciar: ${comp.titulo}`;
+          tag.style.cursor = 'pointer';
           
+          tag.onclick = (e) => {
+            e.stopPropagation();
+            abrirModalGerenciarEvento('compromisso', comp);
+          };
+
           eventsContainer.appendChild(tag);
         }
       });
@@ -2399,6 +2456,8 @@
       futuros.forEach(evt => {
         const item = document.createElement('div');
         item.className = 'agenda-event-item';
+        item.style.cursor = 'pointer';
+        item.title = 'Clique para gerenciar este evento';
         
         const dataStr = evt.dataFormat.toLocaleDateString('pt-BR');
         const horaStr = evt.dataFormat.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -2412,6 +2471,12 @@
           </div>
           <div class="agenda-event-time">${timeDisplay}</div>
         `;
+
+        item.onclick = () => {
+          const tipoOriginal = evt.classIcon === 'compromisso' ? 'compromisso' : 'tarefa';
+          abrirModalGerenciarEvento(tipoOriginal, evt);
+        };
+
         container.appendChild(item);
       });
     }
@@ -2431,6 +2496,148 @@
       } catch (error) {
         console.error("Erro ao alterar status da tarefa:", error);
       }
+    }
+
+    // -----------------------------------------------
+    // MODAL: GERENCIAR EVENTO (editar / excluir)
+    // -----------------------------------------------
+    function abrirModalGerenciarEvento(tipo, evt) {
+      fecharModais();
+      document.getElementById('ger-evento-id').value = evt.id;
+      document.getElementById('ger-evento-tipo').value = tipo;
+      document.getElementById('ger-titulo').value = evt.titulo || '';
+      document.getElementById('ger-descricao').value = evt.descricao || '';
+
+      const gerGroupLocal = document.getElementById('ger-group-local');
+      const gerGroupTipo = document.getElementById('ger-group-tipo');
+      const gerLabelData = document.getElementById('ger-label-data');
+      const gerBtnConcluir = document.getElementById('ger-btn-concluir');
+      const gerBtnConcluirLabel = document.getElementById('ger-btn-concluir-label');
+
+      if (tipo === 'tarefa') {
+        document.getElementById('ger-modal-titulo').innerText = '✏️ Gerenciar Tarefa';
+        gerLabelData.innerText = 'Data de Vencimento';
+        gerGroupLocal.style.display = 'none';
+        gerBtnConcluir.style.display = 'flex';
+        // Data (date only para tarefa)
+        const dataInput = document.getElementById('ger-data');
+        dataInput.type = 'date';
+        dataInput.value = evt.dataVencimento ? evt.dataVencimento.split('T')[0] : '';
+        // Tipo
+        const tipoOpts = ['CUMPRIMENTO_PRAZO','CONTATO_CLIENTE','DILIGENCIA','OUTROS'];
+        const sel = document.getElementById('ger-tipo');
+        sel.innerHTML = `
+          <option value="CUMPRIMENTO_PRAZO">Cumprimento de Prazo</option>
+          <option value="CONTATO_CLIENTE">Contato com Cliente</option>
+          <option value="DILIGENCIA">Diligência</option>
+          <option value="OUTROS">Outros</option>
+        `;
+        sel.value = evt.tipo || 'OUTROS';
+        // Botao concluir
+        const estaConcluida = evt.status === 'CONCLUIDA';
+        gerBtnConcluirLabel.innerText = estaConcluida ? 'Reabrir Tarefa' : 'Marcar como Concluída';
+        gerBtnConcluir.style.background = estaConcluida ? 'rgba(34,197,94,0.2)' : '';
+      } else {
+        document.getElementById('ger-modal-titulo').innerText = '🔔 Gerenciar Compromisso';
+        gerLabelData.innerText = 'Data e Horário';
+        gerGroupLocal.style.display = 'block';
+        gerBtnConcluir.style.display = 'none';
+        document.getElementById('ger-local').value = evt.local || '';
+        // Data (datetime-local para compromisso)
+        const dataInput = document.getElementById('ger-data');
+        dataInput.type = 'datetime-local';
+        dataInput.value = evt.dataHora ? evt.dataHora.replace('Z','').substring(0,16) : '';
+        // Tipo
+        const sel = document.getElementById('ger-tipo');
+        sel.innerHTML = `
+          <option value="AUDIENCIA">Audiência</option>
+          <option value="REUNIAO">Reunião</option>
+          <option value="OUTROS">Outros Compromissos</option>
+        `;
+        sel.value = evt.tipo || 'OUTROS';
+      }
+
+      document.getElementById('modal-gerenciar-evento').classList.add('active');
+    }
+
+    async function gerenciarAlterarStatus() {
+      const id = document.getElementById('ger-evento-id').value;
+      const label = document.getElementById('ger-btn-concluir-label').innerText;
+      const novoStatus = label.includes('Reabrir') ? 'PENDENTE' : 'CONCLUIDA';
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/tarefas/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: novoStatus })
+        });
+        const result = await res.json();
+        if (result.success) {
+          fecharModais();
+          await carregarAgendaDados();
+          await carregarDadosDashboard();
+        }
+      } catch (e) { console.error('Erro ao alterar status:', e); }
+    }
+
+    async function gerenciarSalvar() {
+      const id = document.getElementById('ger-evento-id').value;
+      const tipo = document.getElementById('ger-evento-tipo').value;
+      const titulo = document.getElementById('ger-titulo').value.trim();
+      const descricao = document.getElementById('ger-descricao').value.trim();
+      const dataVal = document.getElementById('ger-data').value;
+      const tipoEvento = document.getElementById('ger-tipo').value;
+      const local = document.getElementById('ger-local').value.trim();
+
+      if (!titulo || !dataVal) {
+        alert('Preencha o título e a data.');
+        return;
+      }
+
+      try {
+        let payload = { titulo, descricao, tipo: tipoEvento };
+        if (tipo === 'tarefa') {
+          payload.dataVencimento = dataVal;
+        } else {
+          payload.dataHora = dataVal;
+          payload.local = local;
+        }
+
+        const endpoint = tipo === 'tarefa' ? `${BACKEND_URL}/api/tarefas/${id}` : `${BACKEND_URL}/api/compromissos/${id}`;
+        const res = await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.success) {
+          fecharModais();
+          await carregarAgendaDados();
+          await carregarDadosDashboard();
+        } else {
+          alert('Erro ao salvar: ' + result.error);
+        }
+      } catch (e) { console.error('Erro ao salvar evento:', e); }
+    }
+
+    async function gerenciarExcluir() {
+      const id = document.getElementById('ger-evento-id').value;
+      const tipo = document.getElementById('ger-evento-tipo').value;
+      const titulo = document.getElementById('ger-titulo').value;
+
+      if (!confirm(`Deseja realmente excluir "${titulo}"? Esta ação não pode ser desfeita.`)) return;
+
+      try {
+        const endpoint = tipo === 'tarefa' ? `${BACKEND_URL}/api/tarefas/${id}` : `${BACKEND_URL}/api/compromissos/${id}`;
+        const res = await fetch(endpoint, { method: 'DELETE' });
+        const result = await res.json();
+        if (result.success) {
+          fecharModais();
+          await carregarAgendaDados();
+          await carregarDadosDashboard();
+        } else {
+          alert('Erro ao excluir: ' + result.error);
+        }
+      } catch (e) { console.error('Erro ao excluir evento:', e); }
     }
 
     function fecharModais() {
@@ -2928,8 +3135,23 @@
         const result = await response.json();
         if (result.success) {
           formatarLog(`[SUCESSO] Sincronização de andamentos processuais concluída!`, 'success');
+          
+          let partes = [];
           if (result.alterados && result.alterados.length > 0) {
-            alert(`Sincronização concluída!\nOs seguintes processos receberam novos andamentos:\n${result.alterados.join('\n')}`);
+            partes.push(`✅ Processos atualizados com novos andamentos:\n${result.alterados.map(p => `• ${p}`).join('\n')}`);
+          }
+          if (result.limitados && result.limitados.length > 0) {
+            partes.push(`⚠️ Limite de requisições do tribunal excedido (Tente novamente em instantes):\n${result.limitados.map(p => `• ${p}`).join('\n')}`);
+          }
+          if (result.naoEncontrados && result.naoEncontrados.length > 0) {
+            partes.push(`❌ Processos não localizados no CNJ Datajud (Verifique o número):\n${result.naoEncontrados.map(p => `• ${p}`).join('\n')}`);
+          }
+          if (result.erros && result.erros.length > 0) {
+            partes.push(`🔴 Erros ao consultar:\n${result.erros.map(e => `• ${e}`).join('\n')}`);
+          }
+          
+          if (partes.length > 0) {
+            alert(`Sincronização concluída!\n\n${partes.join('\n\n')}`);
           } else {
             alert("Sincronização concluída! Todos os processos já estavam atualizados.");
           }

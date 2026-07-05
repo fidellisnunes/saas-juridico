@@ -853,7 +853,7 @@ app.post('/api/tarefas', authMiddleware, async (req: Request, res: Response) => 
       data: {
         titulo,
         descricao,
-        dataVencimento: new Date(dataVencimento + 'T12:00:00'),
+        dataVencimento: dataVencimento.includes('T') ? new Date(dataVencimento) : new Date(dataVencimento + 'T12:00:00'),
         tipo,
         processoId,
         advogadoId: advogado.id
@@ -866,18 +866,57 @@ app.post('/api/tarefas', authMiddleware, async (req: Request, res: Response) => 
   }
 });
 
-// Atualizar status de uma tarefa (concluir / reabrir)
+// Atualizar uma tarefa (status, data, titulo, etc.)
 app.put('/api/tarefas/:id', authMiddleware, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { titulo, descricao, dataVencimento, tipo, processoCNJ, status } = req.body;
 
   try {
+    let processoId = undefined;
+    if (processoCNJ !== undefined) {
+      if (processoCNJ) {
+        const proc = await prisma.processo.findUnique({
+          where: { numeroCNJ: processoCNJ }
+        });
+        processoId = proc ? proc.id : null;
+      } else {
+        processoId = null;
+      }
+    }
+
+    const dataUpdate: any = {};
+    if (titulo !== undefined) dataUpdate.titulo = titulo;
+    if (descricao !== undefined) dataUpdate.descricao = descricao;
+    if (dataVencimento !== undefined) {
+      dataUpdate.dataVencimento = dataVencimento.includes('T') 
+        ? new Date(dataVencimento)
+        : new Date(dataVencimento + 'T12:00:00');
+    }
+    if (tipo !== undefined) dataUpdate.tipo = tipo;
+    if (processoId !== undefined) dataUpdate.processoId = processoId;
+    if (status !== undefined) dataUpdate.status = status;
+
     const tarefa = await prisma.tarefa.update({
       where: { id },
-      data: { status }
+      data: dataUpdate
     });
     res.json({ success: true, data: tarefa });
   } catch (error: any) {
+    console.error('Erro ao atualizar tarefa:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Excluir uma tarefa
+app.delete('/api/tarefas/:id', authMiddleware, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    await prisma.tarefa.delete({
+      where: { id }
+    });
+    res.json({ success: true, message: 'Tarefa excluída com sucesso.' });
+  } catch (error: any) {
+    console.error('Erro ao excluir tarefa:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -939,9 +978,119 @@ app.post('/api/compromissos', authMiddleware, async (req: Request, res: Response
   }
 });
 
+// Atualizar um compromisso
+app.put('/api/compromissos/:id', authMiddleware, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { titulo, descricao, dataHora, local, tipo, processoCNJ } = req.body;
+
+  try {
+    let processoId = undefined;
+    if (processoCNJ !== undefined) {
+      if (processoCNJ) {
+        const proc = await prisma.processo.findUnique({
+          where: { numeroCNJ: processoCNJ }
+        });
+        processoId = proc ? proc.id : null;
+      } else {
+        processoId = null;
+      }
+    }
+
+    const dataUpdate: any = {};
+    if (titulo !== undefined) dataUpdate.titulo = titulo;
+    if (descricao !== undefined) dataUpdate.descricao = descricao;
+    if (dataHora !== undefined) dataUpdate.dataHora = new Date(dataHora);
+    if (local !== undefined) dataUpdate.local = local;
+    if (tipo !== undefined) dataUpdate.tipo = tipo;
+    if (processoId !== undefined) dataUpdate.processoId = processoId;
+
+    const compromisso = await prisma.compromisso.update({
+      where: { id },
+      data: dataUpdate
+    });
+    res.json({ success: true, data: compromisso });
+  } catch (error: any) {
+    console.error('Erro ao atualizar compromisso:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Excluir um compromisso
+app.delete('/api/compromissos/:id', authMiddleware, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    await prisma.compromisso.delete({
+      where: { id }
+    });
+    res.json({ success: true, message: 'Compromisso excluído com sucesso.' });
+  } catch (error: any) {
+    console.error('Erro ao excluir compromisso:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // --------------------------------------------------
 // SINCRONIZAÇÃO EM SEGUNDO PLANO / MANUAL
 // --------------------------------------------------
+
+interface DatajudConsultarResult {
+  success: boolean;
+  status?: number;
+  movimentos?: any[];
+  errorType?: 'RATE_LIMIT' | 'NOT_FOUND' | 'ERROR' | 'UNKNOWN';
+  errorMessage?: string;
+}
+
+// Helper: consulta o Datajud e retorna detalhamento
+async function consultarMovimentacoesDatajud(tribunal: string, numeroCNJ: string): Promise<DatajudConsultarResult> {
+  const endpoints: Record<string, string> = {
+    'TJES': 'https://api-publica.datajud.cnj.jus.br/api_publica_tjes/_search',
+    'TRT-17': 'https://api-publica.datajud.cnj.jus.br/api_publica_trt17/_search'
+  };
+  const url = endpoints[tribunal];
+  if (!url) return { success: false, errorType: 'UNKNOWN', errorMessage: 'Tribunal não suportado.' };
+
+  const numeroLimpo = numeroCNJ.replace(/\D/g, '');
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `APIKey ${DATAJUD_API_KEY}`
+      },
+      body: JSON.stringify({ query: { match: { numeroProcesso: numeroLimpo } } })
+    });
+
+    if (!response.ok) {
+      console.warn(`[Datajud] HTTP ${response.status} ao consultar ${numeroCNJ} (${tribunal})`);
+      if (response.status === 429) {
+        return { success: false, status: 429, errorType: 'RATE_LIMIT', errorMessage: 'Limite de requisições atingido.' };
+      }
+      return { success: false, status: response.status, errorType: 'ERROR', errorMessage: `Erro HTTP ${response.status}` };
+    }
+
+    const data = await response.json() as any;
+    const hit = data.hits?.hits?.[0]?._source;
+    if (!hit || !hit.movimentos) {
+      return { success: false, errorType: 'NOT_FOUND', errorMessage: 'Processo não encontrado na API do Datajud.' };
+    }
+
+    const movimentosArr = (hit.movimentos as any[]);
+    movimentosArr.sort((a: any, b: any) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
+    const movimentosMapped = movimentosArr.map((m: any) => ({
+      data: new Date(m.dataHora).toISOString().split('T')[0],
+      titulo: m.nome || 'Andamento',
+      desc: m.complementosTabelados
+        ? m.complementosTabelados.map((c: any) => `${c.nome}: ${c.valor || c.descricao || ''}`).join(', ')
+        : `Movimentação registrada no ${tribunal}.`
+    }));
+
+    return { success: true, movimentos: movimentosMapped };
+  } catch (e: any) {
+    console.error(`[Datajud] Erro ao consultar ${numeroCNJ} (${tribunal}):`, e.message);
+    return { success: false, errorType: 'ERROR', errorMessage: e.message };
+  }
+}
 
 // Rota para sincronizar todos os processos cadastrados de forma manual e imediata
 app.post('/api/processos/sync-all', authMiddleware, async (req: Request, res: Response) => {
@@ -949,90 +1098,52 @@ app.post('/api/processos/sync-all', authMiddleware, async (req: Request, res: Re
   try {
     const processos = await prisma.processo.findMany();
     const alterados: string[] = [];
+    const limitados: string[] = [];
+    const naoEncontrados: string[] = [];
+    const erros: string[] = [];
 
     for (const proc of processos) {
-      const numeroLimpo = proc.numeroCNJ.replace(/\D/g, '');
+      if (proc.tribunal === 'TJES' || proc.tribunal === 'TRT-17') {
+        const result = await consultarMovimentacoesDatajud(proc.tribunal, proc.numeroCNJ);
+        if (result.success && result.movimentos && result.movimentos.length > 0) {
+          let movsExistentes = [];
+          try {
+            movsExistentes = JSON.parse(proc.movimentacoes || '[]');
+          } catch(e) {}
+          
+          const novosMovs = result.movimentos;
+          const temMudanca = movsExistentes.length === 0 || 
+            movsExistentes[0]?.data !== novosMovs[0]?.data || 
+            movsExistentes[0]?.titulo !== novosMovs[0]?.titulo;
 
-      // Se for processo do TJES, atualiza via API Pública do Datajud
-      if (proc.tribunal === 'TJES') {
-        try {
-          const response = await fetch('https://api-publica.datajud.cnj.jus.br/api_publica_tjes/_search', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `APIKey ${DATAJUD_API_KEY}`
-            },
-            body: JSON.stringify({
-              query: {
-                match: {
-                  numeroProcesso: numeroLimpo
-                }
+          if (temMudanca) {
+            await prisma.processo.update({
+              where: { id: proc.id },
+              data: {
+                estagio: novosMovs[0].titulo,
+                movimentacoes: JSON.stringify(novosMovs.slice(0, 20))
               }
-            })
-          });
-
-          if (response.ok) {
-            const datajudResult = await response.json() as any;
-            const hit = datajudResult.hits?.hits?.[0]?._source;
-            if (hit && hit.movimentos) {
-              const movimentosArr = hit.movimentos || [];
-              movimentosArr.sort((a: any, b: any) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
-
-              const mappedMovs = movimentosArr.map((m: any) => {
-                const dataStr = new Date(m.dataHora).toISOString().split('T')[0];
-                return {
-                  data: dataStr,
-                  titulo: m.nome || 'Andamento',
-                  desc: m.complementosTabelados ? m.complementosTabelados.map((c: any) => `${c.nome}: ${c.valor || c.descricao || ''}`).join(', ') : 'Movimentação registrada no TJES.'
-                };
-              });
-
-              await prisma.processo.update({
-                where: { id: proc.id },
-                data: {
-                  estagio: mappedMovs.length > 0 ? mappedMovs[0].titulo : proc.estagio,
-                  movimentacoes: JSON.stringify(mappedMovs.slice(0, 20))
-                }
-              });
-              alterados.push(proc.numeroCNJ);
-            }
+            });
+            alterados.push(`${proc.numeroCNJ} (${proc.tribunal})`);
           }
-        } catch (e: any) {
-          console.error(`Erro ao sincronizar processo TJES ${proc.numeroCNJ}:`, e.message);
+        } else if (result.errorType === 'RATE_LIMIT') {
+          limitados.push(`${proc.numeroCNJ} (${proc.tribunal})`);
+        } else if (result.errorType === 'NOT_FOUND') {
+          naoEncontrados.push(`${proc.numeroCNJ} (${proc.tribunal})`);
+        } else {
+          erros.push(`${proc.numeroCNJ} (${proc.tribunal}): ${result.errorMessage}`);
         }
-      } else {
-        // Para o TRT-17, mantemos o mock inteligente para demonstração
-        let movs = [];
-        try {
-          movs = JSON.parse(proc.movimentacoes || '[]');
-        } catch (e) {
-          movs = [];
-        }
-
-        const hojeStr = new Date().toISOString().split('T')[0];
-        const temHoje = movs.some((m: any) => m.data === hojeStr);
-
-        if (!temHoje) {
-          const novosAndamentosMock = [
-            { data: hojeStr, titulo: 'Conclusão ao Juiz', desc: 'Autos conclusos para despacho/decisão.' },
-            { data: hojeStr, titulo: 'Juntada de Petição', desc: 'Juntada de manifestação/petição intercorrente.' },
-            { data: hojeStr, titulo: 'Decisão Proferida', desc: 'Decisão interlocutória proferida nos autos.' }
-          ];
-          const novo = novosAndamentosMock[Math.floor(Math.random() * novosAndamentosMock.length)];
-          movs.unshift(novo);
-          await prisma.processo.update({
-            where: { id: proc.id },
-            data: {
-              estagio: novo.titulo,
-              movimentacoes: JSON.stringify(movs.slice(0, 10))
-            }
-          });
-          alterados.push(proc.numeroCNJ);
-        }
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
-    res.json({ success: true, message: 'Todos os processos foram sincronizados.', alterados });
+    res.json({
+      success: true,
+      alterados,
+      limitados,
+      naoEncontrados,
+      erros
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1089,77 +1200,20 @@ setInterval(async () => {
     for (const proc of processos) {
       const numeroLimpo = proc.numeroCNJ.replace(/\D/g, '');
 
-      if (proc.tribunal === 'TJES') {
-        try {
-          const response = await fetch('https://api-publica.datajud.cnj.jus.br/api_publica_tjes/_search', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `APIKey ${DATAJUD_API_KEY}`
-            },
-            body: JSON.stringify({
-              query: {
-                match: {
-                  numeroProcesso: numeroLimpo
-                }
-              }
-            })
-          });
-
-          if (response.ok) {
-            const datajudResult = await response.json() as any;
-            const hit = datajudResult.hits?.hits?.[0]?._source;
-            if (hit && hit.movimentos) {
-              const movimentosArr = hit.movimentos || [];
-              movimentosArr.sort((a: any, b: any) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
-
-              const mappedMovs = movimentosArr.map((m: any) => {
-                const dataStr = new Date(m.dataHora).toISOString().split('T')[0];
-                return {
-                  data: dataStr,
-                  titulo: m.nome || 'Andamento',
-                  desc: m.complementosTabelados ? m.complementosTabelados.map((c: any) => `${c.nome}: ${c.valor || c.descricao || ''}`).join(', ') : 'Movimentação registrada no TJES.'
-                };
-              });
-
-              await prisma.processo.update({
-                where: { id: proc.id },
-                data: {
-                  estagio: mappedMovs.length > 0 ? mappedMovs[0].titulo : proc.estagio,
-                  movimentacoes: JSON.stringify(mappedMovs.slice(0, 20))
-                }
-              });
-            }
-          }
-        } catch (e: any) {
-          console.error(`Erro na rotina periódica do TJES para ${proc.numeroCNJ}:`, e.message);
-        }
-      } else {
-        let movs = [];
-        try {
-          movs = JSON.parse(proc.movimentacoes || '[]');
-        } catch (e) {
-          movs = [];
-        }
-        
-        const hojeStr = new Date().toISOString().split('T')[0];
-        const temHoje = movs.some((m: any) => m.data === hojeStr);
-        if (!temHoje) {
-          const novosAndamentosMock = [
-            { data: hojeStr, titulo: 'Conclusão ao Juiz', desc: 'Autos conclusos para despacho/decisão.' },
-            { data: hojeStr, titulo: 'Juntada de Petição', desc: 'Juntada de manifestação/petição intercorrente.' },
-            { data: hojeStr, titulo: 'Decisão Proferida', desc: 'Decisão interlocutória proferida nos autos.' }
-          ];
-          const novo = novosAndamentosMock[Math.floor(Math.random() * novosAndamentosMock.length)];
-          movs.unshift(novo);
+      if (proc.tribunal === 'TJES' || proc.tribunal === 'TRT-17') {
+        const result = await consultarMovimentacoesDatajud(proc.tribunal, proc.numeroCNJ);
+        if (result.success && result.movimentos && result.movimentos.length > 0) {
           await prisma.processo.update({
             where: { id: proc.id },
             data: {
-              estagio: novo.titulo,
-              movimentacoes: JSON.stringify(movs.slice(0, 10))
+              estagio: result.movimentos[0].titulo,
+              movimentacoes: JSON.stringify(result.movimentos.slice(0, 20))
             }
           });
+          console.log(`🔄 [${proc.tribunal}] ${proc.numeroCNJ} atualizado: ${result.movimentos[0].titulo}`);
         }
+        // Delay escalonado para evitar rate limiting (429)
+        await new Promise(resolve => setTimeout(resolve, 700));
       }
     }
   } catch (err: any) {
