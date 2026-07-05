@@ -3565,7 +3565,11 @@
             alert("Histórico integral dos autos extraído e importado com sucesso! A linha do tempo do processo foi atualizada.");
           } else {
             statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Erro ao processar arquivo`;
-            alert("Erro ao processar os autos: " + result.error);
+            if (result.errorType === 'MISSING_GEMINI_KEY') {
+              alert("Erro: A chave GEMINI_API_KEY não está configurada no servidor backend.\n\nPor favor, adicione a linha:\nGEMINI_API_KEY=sua_chave_aqui\nno arquivo backend/.env e reinicie o servidor.");
+            } else {
+              alert("Erro ao processar os autos: " + result.error);
+            }
           }
         } catch (err) {
           console.error(err);

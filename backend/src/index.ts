@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { DjenService } from './services/djenService';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import { PDFParse } from 'pdf-parse';
 
 dotenv.config();
 
@@ -344,34 +345,131 @@ app.post('/api/processos/:id/upload-autos', authMiddleware, async (req: Request,
       return res.status(404).json({ success: false, error: 'Processo não encontrado.' });
     }
 
-    // Gerar um histórico fictício mas extremamente realista baseado no arquivo dos autos (simulando extração OCR/IA)
-    const dataAtual = new Date();
-    const subDays = (d: number) => {
-      const date = new Date(dataAtual);
-      date.setDate(date.getDate() - d);
-      return date.toISOString().split('T')[0];
+    if (!base64) {
+      return res.status(400).json({ success: false, error: 'O conteúdo em Base64 do arquivo PDF é obrigatório.' });
+    }
+
+    // 1. Extrair texto do PDF usando o pdf-parse
+    let parsedText = '';
+    try {
+      const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
+      const parser = new PDFParse({ data: buffer });
+      const textResult = await parser.getText();
+      parsedText = textResult.text || '';
+    } catch (pdfError: any) {
+      console.error('Erro ao ler PDF:', pdfError);
+      return res.status(400).json({ success: false, error: 'Falha ao processar o arquivo PDF. Garanta que o PDF é válido e contém texto legível.' });
+    }
+
+    if (!parsedText || parsedText.trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'O PDF enviado não contém texto extraível (pode ser uma imagem escaneada sem OCR).' });
+    }
+
+    // 2. Verificar a existência da chave do Gemini no backend/.env
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      return res.status(400).json({
+        success: false,
+        errorType: 'MISSING_GEMINI_KEY',
+        error: 'Chave GEMINI_API_KEY não configurada no arquivo backend/.env do servidor.'
+      });
+    }
+
+    // 3. Chamar a API do Gemini 1.5 Flash para ler e estruturar as informações
+    const prompt = `Você é um analista jurídico especializado em autuação processual de tribunais brasileiros (TJES, TRT-17, etc.).
+Analise o seguinte texto extraído de uma cópia integral dos autos de um processo em PDF e extraia as informações cadastrais e o histórico de andamentos (movimentações) do processo.
+
+Texto dos Autos:
+"""
+${parsedText.substring(0, 40000)}
+"""
+
+Você deve retornar APENAS um objeto JSON válido (sem markdown, sem blocos de código \`\`\`json) no seguinte formato exato:
+{
+  "classe": "Classe do processo (ex: ATSum, Procedimento Comum Cível)",
+  "poloAtivo": "Nome do autor / reclamante principal",
+  "poloPassivo": "Nome do réu / reclamada principal",
+  "vara": "Nome do órgão julgador / vara (ex: 11ª Vara do Trabalho de Vitória)",
+  "comarca": "Nome da comarca (ex: Serra, Vitória)",
+  "distribuicao": "Data de autuação/distribuição no formato YYYY-MM-DD",
+  "estagio": "Fase/Estágio processual sugerido (Conhecimento, Recurso, Execução ou Julgamento)",
+  "movimentacoes": [
+    {
+      "data": "Data do andamento no formato YYYY-MM-DD",
+      "titulo": "Título formal do andamento em linguagem forense padrão (ex: Juntada de Petição, Conclusão para Sentença, Despacho Proferido)",
+      "desc": "Descrição resumida e clara do andamento jurídico."
+    }
+  ]
+}
+
+Garanta que:
+1. Os nomes das partes e da vara sejam extraídos com fidelidade.
+2. A lista de movimentações seja ordenada da mais recente para a mais antiga.
+3. Não insira caracteres quebrados ou codificações incorretas.`;
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+    const geminiResponse = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
+      })
+    });
+
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error('Erro na API do Gemini:', errorText);
+      return res.status(502).json({ success: false, error: 'Falha na comunicação com a API do Gemini.' });
+    }
+
+    const geminiData = (await geminiResponse.json()) as any;
+    const candidateText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    if (!candidateText) {
+      return res.status(502).json({ success: false, error: 'A resposta da API do Gemini veio vazia.' });
+    }
+
+    let cleanedText = candidateText.trim();
+    if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
+    }
+
+    let extracted: any = null;
+    try {
+      extracted = JSON.parse(cleanedText.trim());
+    } catch (jsonErr) {
+      console.error('Erro no parse do JSON do Gemini:', cleanedText, jsonErr);
+      return res.status(502).json({ success: false, error: 'O Gemini não retornou um formato JSON válido.' });
+    }
+
+    // 4. Sanitizar os campos acentuados retornados pelo Gemini para garantir coerência
+    const sanitizarString = (s: string) => {
+      if (!s) return '';
+      return s.trim();
     };
 
-    const historicoAutos = [
-      { data: subDays(60), titulo: "Peti\u00e7\u00e3o Inicial Juntada", desc: "Protocolo da peti\u00e7\u00e3o inicial pelo reclamante acompanhado de documentos instruidores." },
-      { data: subDays(58), titulo: "Distribui\u00e7\u00e3o por Sorteio", desc: "Processo distribu\u00eddo automaticamente para a vara competente. Valor da causa fixado." },
-      { data: subDays(55), titulo: "Despacho Citat\u00f3rio Proferido", desc: "Ju\u00edzo ordena a cita\u00e7\u00e3o da reclamada para apresentar contesta\u00e7\u00e3o e comparecer \u00e0 audi\u00eancia." },
-      { data: subDays(45), titulo: "Cita\u00e7\u00e3o Postal Confirmada", desc: "AR de cita\u00e7\u00e3o cumprido e juntado aos autos eletr\u00f4nicos." },
-      { data: subDays(30), titulo: "Contesta\u00e7\u00e3o Juntada", desc: "A reclamada apresentou defesa tempestiva acompanhada de procura\u00e7\u00e3o e documentos." },
-      { data: subDays(25), titulo: "R\u00e9plica \u00e0 Contesta\u00e7\u00e3o", desc: "Manifesta\u00e7\u00e3o do reclamante sobre as defesas e documentos apresentados pelo r\u00e9u." },
-      { data: subDays(15), titulo: "Termo de Audi\u00eancia de Concilia\u00e7\u00e3o Juntado", desc: "Realizada audi\u00eancia conciliat\u00f3ria. Inconciliados. Juiz concede prazo para alega\u00e7\u00f5es finais." },
-      { data: subDays(5), titulo: "Conclus\u00e3o ao Juiz dos Autos", desc: "Autos conclusos para julgamento e prola\u00e7\u00e3o de senten\u00e7a de m\u00e9rito." }
-    ];
+    const movsArray = Array.isArray(extracted.movimentacoes) ? extracted.movimentacoes.map((m: any) => ({
+      data: m.data || new Date().toISOString().split('T')[0],
+      titulo: sanitizarString(m.titulo || 'Andamento'),
+      desc: sanitizarString(m.desc || 'Movimentação processual registrada nos autos.')
+    })) : [];
 
-    // Atualiza o processo com o histórico extraído dos autos
+    // 5. Atualizar o processo no banco de dados com as informações reais extraídas
     const atualizado = await prisma.processo.update({
       where: { id },
       data: {
-        movimentacoes: JSON.stringify(historicoAutos),
-        estagio: "Julgamento",
-        classe: proc.classe || "Ação Trabalhista (ATSum)",
-        poloAtivo: proc.poloAtivo || "ANNA LUISA PINTO NEVES",
-        poloPassivo: proc.poloPassivo || "SFW ALIMENTOS LTDA"
+        classe: sanitizarString(extracted.classe || proc.classe || 'ATSum'),
+        poloAtivo: sanitizarString(extracted.poloAtivo || proc.poloAtivo || 'Polo Ativo'),
+        poloPassivo: sanitizarString(extracted.poloPassivo || proc.poloPassivo || 'Polo Passivo'),
+        vara: sanitizarString(extracted.vara || proc.vara || 'Vara do Trabalho'),
+        comarca: sanitizarString(extracted.comarca || proc.comarca || 'Vitória'),
+        distribuicao: extracted.distribuicao ? new Date(extracted.distribuicao) : proc.distribuicao,
+        estagio: sanitizarString(extracted.estagio || proc.estagio || 'Julgamento'),
+        movimentacoes: JSON.stringify(movsArray)
       },
       include: { cliente: true }
     });
