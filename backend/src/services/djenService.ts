@@ -21,109 +21,89 @@ export class DjenService {
   }
 
   /**
-   * Busca publicações do dia. Se a variável de ambiente DATAJUD_API_KEY estiver configurada,
-   * realiza uma consulta real na API pública do CNJ (DataJud) para buscar processos sob a OAB.
-   * Caso contrário, retorna dados simulados realistas para testes.
+   * Busca publicações reais do dia na API pública de comunicações do PJe (comunicaapi.pje.jus.br)
+   * consultando tanto pela OAB do advogado quanto pelos números CNJ de processos cadastrados no sistema.
    */
   public async buscarPublicacoesDoDia(data: Date): Promise<DjenPublicacao[]> {
     const dataFormatada = data.toISOString().split('T')[0];
-    const apiKey = process.env.DATAJUD_API_KEY;
+    
+    // Obter todos os advogados do sistema
+    const advogados = await this.prisma.advogado.findMany();
+    
+    // Obter todos os processos do sistema
+    const processos = await this.prisma.processo.findMany();
+    
+    const publicacoesMap = new Map<string, DjenPublicacao>();
 
-    if (apiKey) {
-      console.log(`[CNJ/DataJud] Realizando consulta real na API pública do DataJud para TJES...`);
+    // 1. Buscar comunicações por OAB de cada advogado
+    for (const adv of advogados) {
+      const oabLimpa = adv.oab.replace(/\D/g, '');
+      const url = `https://comunicaapi.pje.jus.br/api/v1/comunicacao?numeroOab=${oabLimpa}&ufOab=${adv.uf}`;
       try {
-        // Consulta para o tribunal TJES
-        const response = await fetch('https://api-publica.datajud.cnj.jus.br/api_publica_tjes/_search', {
-          method: 'POST',
+        console.log(`[DJEN] Buscando comunicações na API do PJe por OAB: ${oabLimpa}/${adv.uf}`);
+        const response = await fetch(url, {
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `ApiKey ${apiKey}`
-          },
-          body: JSON.stringify({
-            query: {
-              bool: {
-                must: [
-                  {
-                    match: {
-                      "advogados.numeroOab": "35054"
-                    }
-                  },
-                  {
-                    match: {
-                      "advogados.ufOab": "ES"
-                    }
-                  }
-                ]
-              }
-            },
-            size: 15,
-            sort: [{ "dataHoraUltimaAtualizacao": { "order": "desc" } }]
-          })
+            "Accept": "application/json",
+            "User-Agent": "SaaS-Juridico-Monitor/1.0"
+          }
         });
-
-        if (!response.ok) {
-          throw new Error(`Erro na chamada ao DataJud: ${response.statusText}`);
+        if (response.ok) {
+          const resJson: any = await response.json();
+          const items = resJson.items || [];
+          for (const item of items) {
+            publicacoesMap.set(String(item.id), {
+              id: String(item.id),
+              caderno: item.tipoComunicacao || "Movimentação Processual",
+              tribunal: item.siglaTribunal || "TJES",
+              dataDisponibilizacao: item.data_disponibilizacao,
+              dataPublicacao: item.data_disponibilizacao,
+              textoCompleto: item.texto || "",
+              fonte: item.meiocompleto || "Diário de Justiça Eletrônico Nacional"
+            });
+          }
         }
-
-        const rawData: any = await response.json();
-        const hits = rawData.hits?.hits || [];
-        
-        console.log(`[CNJ/DataJud] Retornados ${hits.length} resultados reais.`);
-
-        // Mapeia os hits do ElasticSearch do CNJ para o formato do nosso sistema
-        const resultadosReais = hits.map((hit: any, index: number) => {
-          const source = hit._source || {};
-          const cnj = source.numeroProcesso;
-          const tribunal = source.tribunal || 'TJES';
-          const movs = source.movimentos || [];
-          const ultimaMov = movs.length > 0 ? movs[movs.length - 1] : {};
-          
-          return {
-            id: hit._id || `datajud-${index}`,
-            caderno: "Movimentação Processual",
-            tribunal: tribunal,
-            dataDisponibilizacao: source.dataHoraUltimaAtualizacao?.split('T')[0] || dataFormatada,
-            dataPublicacao: source.dataHoraUltimaAtualizacao?.split('T')[0] || dataFormatada,
-            textoCompleto: `Processo ${cnj}. Movimentação identificada no DataJud: ${ultimaMov.nome || 'Atualização de andamento'}. Assunto: ${source.assunto?.nome || 'Não especificado'}. Advogado: Rudson Fidellis Nunes (OAB/ES 35.054).`,
-            fonte: `DataJud CNJ - ${tribunal}`
-          };
-        });
-
-        return resultadosReais;
-
-      } catch (error) {
-        console.error(`[CNJ/DataJud] Falha na consulta real ao DataJud:`, error);
-        // Retorna array vazio em caso de erro na consulta real, para NUNCA gerar dados fictícios se a chave estiver configurada
-        return [];
+      } catch (err: any) {
+        console.error(`[DJEN] Erro ao buscar por OAB ${oabLimpa}:`, err.message);
       }
     }
 
-    // Se NÃO houver DATAJUD_API_KEY configurada, roda o fallback simulado para testes locais
-    console.log(`[DJEN/PJe] Simulando diários de TJES e TRT17 para o Dr. Rudson Nunes...`);
-    return [
-      {
-        id: "tjes-112233",
-        caderno: "Diário de Justiça do Espírito Santo",
-        tribunal: "TJES",
-        dataDisponibilizacao: dataFormatada,
-        dataPublicacao: dataFormatada,
-        textoCompleto: "Processo 0012456-78.2025.8.08.0024. Fica o patrono intimado para apresentar réplica à contestação no prazo de 15 dias úteis. Advogado: Rudson Fidellis Nunes (OAB/ES 35.054).",
-        fonte: "DJEN / TJES"
-      },
-      {
-        id: "trt17-445566",
-        caderno: "Tribunal Regional do Trabalho da 17ª Região",
-        tribunal: "TRT-17",
-        dataDisponibilizacao: dataFormatada,
-        dataPublicacao: dataFormatada,
-        textoCompleto: "Ação Trabalhista - Processo 0000345-12.2025.5.17.0002. Manifestar-se sobre a manifestação de documentos da ré pelo prazo comum de 8 dias úteis. Advogado: Rudson Fidellis Nunes (OAB/ES 35.054).",
-        fonte: "PJe TRT-17"
+    // 2. Buscar comunicações por cada número CNJ de processo cadastrado no banco
+    for (const proc of processos) {
+      const cnjLimpo = proc.numeroCNJ.replace(/\D/g, '');
+      const url = `https://comunicaapi.pje.jus.br/api/v1/comunicacao?numeroProcesso=${cnjLimpo}`;
+      try {
+        console.log(`[DJEN] Buscando comunicações na API do PJe por Processo CNJ: ${cnjLimpo}`);
+        const response = await fetch(url, {
+          headers: {
+            "Accept": "application/json",
+            "User-Agent": "SaaS-Juridico-Monitor/1.0"
+          }
+        });
+        if (response.ok) {
+          const resJson: any = await response.json();
+          const items = resJson.items || [];
+          for (const item of items) {
+            publicacoesMap.set(String(item.id), {
+              id: String(item.id),
+              caderno: item.tipoComunicacao || "Movimentação Processual",
+              tribunal: item.siglaTribunal || "TJES",
+              dataDisponibilizacao: item.data_disponibilizacao,
+              dataPublicacao: item.data_disponibilizacao,
+              textoCompleto: item.texto || "",
+              fonte: item.meiocompleto || "Diário de Justiça Eletrônico Nacional"
+            });
+          }
+        }
+      } catch (err: any) {
+        console.error(`[DJEN] Erro ao buscar por Processo ${cnjLimpo}:`, err.message);
       }
-    ];
+    }
+
+    return Array.from(publicacoesMap.values());
   }
 
   /**
-   * Processa as publicações diárias cruzando-as com os advogados cadastrados.
+   * Processa as publicações diárias cruzando-as com os advogados cadastrados e vinculando-as aos processos.
    */
   public async processarPublicacoes(publicacoes: DjenPublicacao[]): Promise<void> {
     console.log(`[DJEN] Iniciando processamento de ${publicacoes.length} publicações...`);
@@ -139,35 +119,32 @@ export class DjenService {
 
     for (const pub of publicacoes) {
       const texto = pub.textoCompleto;
+      const matches = texto.match(this.cnjRegex);
+      const numeroCNJ = matches && matches.length > 0 ? matches[0] : null;
+
+      // Se acharmos o CNJ na publicação, vamos verificar se o processo pertence ao advogado
+      let processoVinculado: any = null;
+      if (numeroCNJ) {
+        processoVinculado = await this.prisma.processo.findUnique({
+          where: { numeroCNJ },
+          include: { cliente: true }
+        });
+      }
 
       for (const adv of advogados) {
+        // Regra 1: Nome ou OAB do advogado estão na publicação
         const nomeMatch = texto.toLowerCase().includes(adv.user.name.toLowerCase());
         const oabLimpa = adv.oab.replace(/\D/g, '');
         const textoLimpo = texto.replace(/\D/g, '');
         const oabMatch = texto.includes(adv.oab) || textoLimpo.includes(oabLimpa);
 
-        if (nomeMatch || oabMatch) {
-          console.log(`[DJEN] Correspondência encontrada para: ${adv.user.name} (OAB/${adv.uf} ${adv.oab})`);
+        // Regra 2: O processo pertence a este advogado (por estar cadastrado no banco)
+        const processoMatch = processoVinculado !== null;
 
-          const matches = texto.match(this.cnjRegex);
-          const numeroCNJ = matches && matches.length > 0 ? matches[0] : null;
+        if (nomeMatch || oabMatch || processoMatch) {
+          console.log(`[DJEN] Publicação vinculada para o advogado: ${adv.user.name} (CNJ: ${numeroCNJ || 'Sem CNJ'})`);
 
-          let processoId: string | null = null;
-
-          if (numeroCNJ) {
-            console.log(`[DJEN] Processo CNJ identificado: ${numeroCNJ}`);
-            
-            const processo = await this.prisma.processo.findUnique({
-              where: { numeroCNJ }
-            });
-
-            if (processo) {
-              processoId = processo.id;
-              console.log(`[DJEN] Processo vinculado com sucesso no banco.`);
-            }
-          }
-
-          // Salvar intimação no Supabase
+          // Salvar intimação no banco
           const jaExiste = await this.prisma.intimacao.findFirst({
             where: {
               textoCompleto: pub.textoCompleto,
@@ -182,10 +159,11 @@ export class DjenService {
                 fonte: pub.fonte,
                 dataPublicacao: new Date(pub.dataPublicacao),
                 statusLeitura: false,
-                processoId: processoId,
+                processoId: processoVinculado ? processoVinculado.id : null,
                 advogadoId: adv.id
               }
             });
+            console.log(`[DJEN] Nova intimação cadastrada com sucesso!`);
           }
         }
       }
