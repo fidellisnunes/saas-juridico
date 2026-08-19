@@ -211,6 +211,36 @@ app.post('/api/auth/change-password', authMiddleware, async (req: Request, res: 
   }
 });
 
+app.post('/api/system/config-gemini', authMiddleware, async (req: Request, res: Response) => {
+  const { geminiKey } = req.body;
+  if (!geminiKey || !geminiKey.trim()) {
+    return res.status(400).json({ success: false, error: 'Chave inválida.' });
+  }
+
+  const keyClean = geminiKey.trim();
+  process.env.GEMINI_API_KEY = keyClean;
+
+  try {
+    const envPath = path.join(__dirname, '..', '.env');
+    let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+    if (envContent.includes('GEMINI_API_KEY=')) {
+      envContent = envContent.replace(/GEMINI_API_KEY=.*/g, `GEMINI_API_KEY=${keyClean}`);
+    } else {
+      envContent += `\nGEMINI_API_KEY=${keyClean}\n`;
+    }
+    fs.writeFileSync(envPath, envContent);
+
+    const driveFolder = 'G:\\Meu Drive\\PROFISSIONAL\\FIDELLIS NUNES ADVOCACIA\\sistema\\database';
+    if (fs.existsSync(driveFolder)) {
+      fs.writeFileSync(path.join(driveFolder, 'gemini_key.txt'), keyClean);
+    }
+
+    res.json({ success: true, message: 'Chave do Gemini configurada e salva com sucesso!' });
+  } catch (e: any) {
+    res.json({ success: true, message: 'Chave do Gemini ativada na memória do servidor!' });
+  }
+});
+
 // Endpoint do Painel Principal (Dashboard) - Protegido
 app.get('/api/dashboard', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -371,12 +401,12 @@ app.post('/api/processos/:id/upload-autos', authMiddleware, async (req: Request,
       return res.status(400).json({ success: false, error: 'O conteúdo em Base64 do arquivo PDF é obrigatório.' });
     }
 
-    const geminiKey = process.env.GEMINI_API_KEY;
+    const geminiKey = (req.headers['x-gemini-key'] as string) || req.body.geminiKey || process.env.GEMINI_API_KEY;
     if (!geminiKey) {
       return res.status(400).json({
         success: false,
         errorType: 'MISSING_GEMINI_KEY',
-        error: 'Chave GEMINI_API_KEY não configurada no servidor backend.'
+        error: 'Chave GEMINI_API_KEY não configurada no servidor backend ou na aplicação.'
       });
     }
 
@@ -1513,6 +1543,17 @@ setInterval(async () => {
 
 async function autoSeedDatabase() {
   try {
+    const driveKeyFile = 'G:\\Meu Drive\\PROFISSIONAL\\FIDELLIS NUNES ADVOCACIA\\sistema\\database\\gemini_key.txt';
+    if (fs.existsSync(driveKeyFile)) {
+      try {
+        const savedKey = fs.readFileSync(driveKeyFile, 'utf8').trim();
+        if (savedKey) {
+          process.env.GEMINI_API_KEY = savedKey;
+          console.log('🤖 [GEMINI KEY] Chave carregada automaticamente a partir do Google Drive!');
+        }
+      } catch(e){}
+    }
+
     const userCount = await prisma.user.count();
     const processoCount = await prisma.processo.count();
     console.log(`🌱 [DATABASE INIT] Usuários: ${userCount}, Processos: ${processoCount}`);

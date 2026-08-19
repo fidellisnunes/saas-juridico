@@ -2239,6 +2239,39 @@
       }
     }
 
+    async function abrirConfigurarGemini() {
+      const atual = localStorage.getItem('gemini_api_key') || "";
+      const chave = prompt("Cole aqui a sua chave de API do Google Gemini (obtida gratuitamente em aistudio.google.com):", atual);
+      if (!chave || !chave.trim()) {
+        if (chave !== null) alert("Nenhuma chave informada.");
+        return;
+      }
+
+      const keyClean = chave.trim();
+      localStorage.setItem('gemini_api_key', keyClean);
+
+      const token = localStorage.getItem('saas_juridico_token');
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/system/config-gemini`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ geminiKey: keyClean })
+        });
+        const result = await response.json();
+        if (result.success) {
+          alert("Chave do Gemini configurada e ativada com sucesso!");
+        } else {
+          alert("Chave salva localmente na aplicação!");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Chave salva localmente na aplicação!");
+      }
+    }
+
     async function carregarProcessosDropdowns() {
       try {
         const response = await window.fetch(`${BACKEND_URL}/api/processos`);
@@ -3594,11 +3627,13 @@
         statusDiv.innerHTML = `<i class="fa-solid fa-brain fa-bounce"></i> Processando autos e extraindo histórico com IA...`;
 
         try {
+          const geminiKeyHeader = localStorage.getItem('gemini_api_key') || "";
           const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}/upload-autos`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${token}`,
+              'x-gemini-key': geminiKeyHeader
             },
             body: JSON.stringify({
               filename: file.name,
@@ -3628,7 +3663,20 @@
           } else {
             statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Erro ao processar arquivo`;
             if (result.errorType === 'MISSING_GEMINI_KEY') {
-              alert("Erro: A chave GEMINI_API_KEY não está configurada no servidor backend.\n\nPor favor, adicione a linha:\nGEMINI_API_KEY=sua_chave_aqui\nno arquivo backend/.env e reinicie o servidor.");
+              const userKey = prompt("A chave de API do Gemini não está configurada no servidor.\n\nPor favor, cole abaixo a sua chave GEMINI_API_KEY (obtida em aistudio.google.com) para ativar o leitor de PDF:");
+              if (userKey && userKey.trim()) {
+                const keyClean = userKey.trim();
+                localStorage.setItem('gemini_api_key', keyClean);
+                await fetch(`${BACKEND_URL}/api/system/config-gemini`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({ geminiKey: keyClean })
+                });
+                alert("Chave salva! Clique no botão de enviar o PDF novamente para importar os autos.");
+              }
             } else {
               alert("Erro ao processar os autos: " + result.error);
             }
