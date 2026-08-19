@@ -422,21 +422,16 @@ app.post('/api/processos/:id/upload-autos', authMiddleware, async (req: Request,
       });
     }
 
-    // 1. Tentar extração básica de texto como auxílio (se falhar, o Gemini lê o PDF diretamente)
-    let parsedText = '';
-    try {
-      const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
-      const textResult = await pdfParse(buffer);
-      parsedText = textResult?.text || '';
-    } catch (pdfErr) {
-      console.log('[PDF] pdf-parse falhou ou o PDF é complexo/escaneado. Utilizando leitor nativo multimodal do Gemini...');
+    // 1. Extrair limpo o Base64 sem duplicar memória
+    let cleanBase64 = base64;
+    const commaIdx = base64.indexOf(',');
+    if (commaIdx !== -1) {
+      cleanBase64 = base64.substring(commaIdx + 1);
     }
 
-    const cleanBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
-
-    // 2. Chamar a API do Gemini 1.5 Flash enviando o PDF Base64 diretamente (Multimodal)
-    const prompt = `Você é um analista jurídico especialista em leitura e autuação de cópias integrais dos autos de processos brasileiros (TJES, TRT-17, TJSP, etc.).
-Analise a cópia dos autos em PDF anexada e extraia as informações cadastrais e o histórico completo de andamentos (movimentações).
+    // 2. Prompt ultra otimizado para o Gemini Multimodal NATIVO (sem pdf-parse em memória)
+    const prompt = `Você é um analista jurídico especialista em autuação de cópias integrais dos autos de processos brasileiros (TJES, TRT-17, TJSP, etc.).
+Analise o PDF dos autos em anexo e extraia as informações cadastrais e o histórico completo de andamentos (movimentações).
 
 Retorne APENAS um objeto JSON válido (sem markdown, sem blocos de código \`\`\`json) no seguinte formato exato:
 {
@@ -458,22 +453,21 @@ Retorne APENAS um objeto JSON válido (sem markdown, sem blocos de código \`\`\
 
 Regras:
 1. Extraia o nome exato dos polos ativo e passivo, vara e classe.
-2. Ordene a lista de movimentações da mais recente para a mais antiga.
-3. Se houver trecho extraído do texto: ${parsedText.substring(0, 3000)}`;
+2. Ordene a lista de movimentações da mais recente para a mais antiga.`;
 
     const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
     let geminiResponse: any = null;
     let lastErrorText = '';
 
-    const geminiParts: any[] = [{ text: prompt }];
-    if (cleanBase64) {
-      geminiParts.push({
+    const geminiParts: any[] = [
+      { text: prompt },
+      {
         inlineData: {
           mimeType: 'application/pdf',
           data: cleanBase64
         }
-      });
-    }
+      }
+    ];
 
     for (const model of modelsToTry) {
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
