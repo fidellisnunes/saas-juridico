@@ -461,34 +461,59 @@ Regras:
 2. Ordene a lista de movimentações da mais recente para a mais antiga.
 3. Se houver trecho extraído do texto: ${parsedText.substring(0, 3000)}`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-    
-    const geminiParts: any[] = [
-      { text: prompt },
-      {
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    let geminiResponse: any = null;
+    let lastErrorText = '';
+
+    const geminiParts: any[] = [{ text: prompt }];
+    if (cleanBase64) {
+      geminiParts.push({
         inlineData: {
           mimeType: 'application/pdf',
           data: cleanBase64
         }
+      });
+    }
+
+    for (const model of modelsToTry) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      try {
+        const resp = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: geminiParts }] })
+        });
+
+        if (resp.ok) {
+          geminiResponse = resp;
+          break;
+        } else {
+          lastErrorText = await resp.text();
+          console.warn(`[GEMINI MODEL WARN] Modelo ${model} retornou status ${resp.status}:`, lastErrorText);
+          if (lastErrorText.includes('API key not valid') || resp.status === 400 || resp.status === 403) {
+            // Se a chave for inválida, não vale a pena tentar outros modelos com a mesma chave
+            break;
+          }
+        }
+      } catch (err: any) {
+        console.warn(`[GEMINI FETCH WARN] Erro ao chamar modelo ${model}:`, err.message);
       }
-    ];
+    }
 
-    const geminiResponse = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: geminiParts
-        }]
-      })
-    });
+    if (!geminiResponse) {
+      let jsonErr: any = null;
+      try { jsonErr = JSON.parse(lastErrorText); } catch(e){}
+      const message = jsonErr?.error?.message || lastErrorText.substring(0, 250) || 'Falha ao conectar com o serviço do Gemini.';
+      
+      if (message.toLowerCase().includes('api key') || message.toLowerCase().includes('key not valid')) {
+        return res.status(400).json({
+          success: false,
+          errorType: 'MISSING_GEMINI_KEY',
+          error: 'A chave de API do Gemini informada é inválida ou expirou. Por favor, cole uma nova chave válida.'
+        });
+      }
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Erro na API do Gemini:', errorText);
-      return res.status(502).json({ success: false, error: 'Falha na comunicação com a API do Gemini.' });
+      return res.status(502).json({ success: false, error: `Erro na API do Gemini: ${message}` });
     }
 
     const geminiData = (await geminiResponse.json()) as any;
