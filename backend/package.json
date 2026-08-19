@@ -4,7 +4,7 @@
   "description": "Backend para o Sistema de Gestão e Controle para Escritório de Advocacia",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npx prisma db push && node seed.js && tsc",
     "test": "tsc && node dist/tests/run-tests.js",
     "start": "tsc && node dist/index.js"
   },
