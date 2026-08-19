@@ -3,7 +3,9 @@ import { PrismaClient } from '@prisma/client';
 import { DjenService } from './services/djenService';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { PDFParse } from 'pdf-parse';
+import fs from 'fs';
+import path from 'path';
+const pdfParse = require('pdf-parse');
 
 dotenv.config();
 
@@ -373,8 +375,7 @@ app.post('/api/processos/:id/upload-autos', authMiddleware, async (req: Request,
     let parsedText = '';
     try {
       const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
-      const parser = new PDFParse({ data: buffer });
-      const textResult = await parser.getText();
+      const textResult = await pdfParse(buffer);
       parsedText = textResult.text || '';
     } catch (pdfError: any) {
       console.error('Erro ao ler PDF:', pdfError);
@@ -1476,7 +1477,102 @@ setInterval(async () => {
   }
 }, 60 * 60 * 1000); // 1 hora
 
+async function autoSeedDatabase() {
+  try {
+    const userCount = await prisma.user.count();
+    const processoCount = await prisma.processo.count();
+    console.log(`🌱 [DATABASE INIT] Usuários: ${userCount}, Processos: ${processoCount}`);
+
+    const emailOficial = 'rudson@fidellisnunes.adv.br';
+    let user = await prisma.user.findUnique({ where: { email: emailOficial } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: emailOficial,
+          password: '123',
+          name: 'Dr. Rudson Fidellis Nunes',
+          role: 'ADVOGADO'
+        }
+      });
+      console.log(`✅ [AUTO SEED] Criado usuário oficial: ${user.email}`);
+    }
+
+    let advogado = await prisma.advogado.findFirst({ where: { oab: '35.054', uf: 'ES' } });
+    if (!advogado) {
+      advogado = await prisma.advogado.create({
+        data: {
+          userId: user.id,
+          oab: '35.054',
+          uf: 'ES'
+        }
+      });
+      console.log(`✅ [AUTO SEED] Vinculado advogado OAB/ES ${advogado.oab}`);
+    }
+
+    if (processoCount < 30) {
+      const jsonPath = path.join(__dirname, '..', 'all_processes.json');
+      if (fs.existsSync(jsonPath)) {
+        const jsonStr = fs.readFileSync(jsonPath, 'utf8');
+        const processosList = JSON.parse(jsonStr);
+        let clientCounter = 9000;
+
+        for (const p of processosList) {
+          const clientObj = p.cliente || { name: p.poloAtivo || 'Cliente' };
+          let cliente = await prisma.client.findFirst({ where: { name: { equals: clientObj.name } } });
+          if (!cliente) {
+            clientCounter++;
+            cliente = await prisma.client.create({
+              data: {
+                name: clientObj.name,
+                type: clientObj.type || (clientObj.name.includes('LTDA') || clientObj.name.includes('S.A') || clientObj.name.includes('SA') ? 'PESSOA_JURIDICA' : 'PESSOA_FISICA'),
+                cpfCnpj: clientObj.cpfCnpj || `777.666.${clientCounter}-${String(clientCounter).slice(-2)}`,
+                email: clientObj.email || `${clientObj.name.toLowerCase().replace(/[^a-z0-9]/g, '.')}@email.com`,
+                phone: clientObj.phone || '(27) 99999-0000',
+                status: 'ATIVO'
+              }
+            });
+          }
+
+          await prisma.processo.upsert({
+            where: { numeroCNJ: p.numeroCNJ },
+            update: {
+              vara: p.vara,
+              comarca: p.comarca,
+              tribunal: p.tribunal,
+              classe: p.classe,
+              poloAtivo: p.poloAtivo,
+              poloPassivo: p.poloPassivo,
+              clienteRepresentado: p.clienteRepresentado || 'RECLAMADA',
+              estagio: p.estagio,
+              distribuicao: p.distribuicao ? new Date(p.distribuicao) : new Date(),
+              movimentacoes: p.movimentacoes
+            },
+            create: {
+              numeroCNJ: p.numeroCNJ,
+              vara: p.vara,
+              comarca: p.comarca,
+              tribunal: p.tribunal,
+              classe: p.classe,
+              poloAtivo: p.poloAtivo,
+              poloPassivo: p.poloPassivo,
+              clienteRepresentado: p.clienteRepresentado || 'RECLAMADA',
+              estagio: p.estagio,
+              distribuicao: p.distribuicao ? new Date(p.distribuicao) : new Date(),
+              movimentacoes: p.movimentacoes,
+              clienteId: cliente.id
+            }
+          });
+        }
+        console.log(`🎉 [AUTO SEED] 38 processos semeados com sucesso no banco de dados!`);
+      }
+    }
+  } catch (err: any) {
+    console.error('❌ Erro no autoSeedDatabase:', err.message);
+  }
+}
+
 // Inicialização
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`🚀 Servidor backend rodando na porta ${port}`);
+  await autoSeedDatabase();
 });
