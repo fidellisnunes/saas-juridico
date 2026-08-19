@@ -1,57 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
+const fs = require('fs');
+const path = require('path');
 const prisma = new PrismaClient();
 
-const DATAJUD_API_KEY = 'cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==';
-
-async function buscarDatajud(tribunalEndpoint) {
-  const url = `https://api-publica.datajud.cnj.jus.br/${tribunalEndpoint}/_search`;
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `ApiKey ${DATAJUD_API_KEY}`
-      },
-      body: JSON.stringify({
-        query: {
-          bool: {
-            should: [
-              { match: { "advogados.numeroOab": "35054" } },
-              { match: { "advogados.nome": "RUDSON FIDELLIS NUNES" } },
-              { match: { "poloAtivo.nome": "RUDSON FIDELLIS NUNES" } },
-              { match: { "poloPassivo.nome": "RUDSON FIDELLIS NUNES" } }
-            ],
-            minimum_should_match: 1
-          }
-        },
-        size: 50,
-        sort: [{ "dataHoraUltimaAtualizacao": { "order": "desc" } }]
-      })
-    });
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.hits?.hits || [];
-  } catch (err) {
-    console.error(`Erro buscando em ${tribunalEndpoint}:`, err.message);
-    return [];
-  }
-}
-
-async function buscarComunicaAPI() {
-  const url = `https://comunicaapi.pje.jus.br/api/v1/comunicacao?numeroOab=35054&ufOab=ES`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.items || [];
-  } catch (err) {
-    console.error('Erro na ComunicaAPI:', err.message);
-    return [];
-  }
-}
-
 async function main() {
-  console.log('🌱 Semeando banco de dados SQLite com TODOS os processos de Dr. Rudson Fidellis Nunes...');
+  console.log('🌱 Semeando banco de dados SQLite com TODOS os 38 processos de Dr. Rudson Fidellis Nunes...');
 
   // 1. Criar ou atualizar Usuário principal com o e-mail oficial zoho
   const emailOficial = 'rudson@fidellisnunes.adv.br';
@@ -86,167 +39,69 @@ async function main() {
     console.log(`✅ Advogado vinculado: OAB/ES ${advogado.oab}`);
   }
 
-  // 3. Buscar todos os processos nas APIs oficiais (TJES, TRT17, PJe ComunicaAPI)
-  const [tjesHits, trtHits, comunicaItems] = await Promise.all([
-    buscarDatajud('api_publica_tjes'),
-    buscarDatajud('api_publica_trt17'),
-    buscarComunicaAPI()
-  ]);
+  // 3. Ler todos os 38 processos exportados do JSON
+  const jsonPath = path.join(__dirname, 'all_processes.json');
+  if (fs.existsSync(jsonPath)) {
+    const jsonStr = fs.readFileSync(jsonPath, 'utf8');
+    const processosList = JSON.parse(jsonStr);
 
-  console.log(`📊 Pesquisa concluída: TJES=${tjesHits.length}, TRT17=${trtHits.length}, ComunicaAPI=${comunicaItems.length}`);
+    console.log(`📋 Carregando ${processosList.length} processos pré-mapeados...`);
 
-  const processosMap = new Map();
-
-  // Mapear TJES
-  for (const hit of tjesHits) {
-    const src = hit._source || {};
-    const rawCNJ = src.numeroProcesso;
-    if (!rawCNJ) continue;
-
-    let cnj = rawCNJ;
-    if (!cnj.includes('-') && cnj.length === 20) {
-      cnj = `${cnj.substring(0,7)}-${cnj.substring(7,9)}.${cnj.substring(9,13)}.${cnj.substring(13,14)}.${cnj.substring(14,16)}.${cnj.substring(16,20)}`;
-    }
-
-    const movsArr = (src.movimentos || []).map(m => ({
-      data: m.dataHora ? m.dataHora.split('T')[0] : new Date().toISOString().split('T')[0],
-      titulo: m.nome || 'Andamento',
-      desc: m.complementosTabelados ? m.complementosTabelados.map(c => `${c.nome}: ${c.valor || c.descricao || ''}`).join(', ') : 'Movimentação registrada no TJES.'
-    }));
-
-    processosMap.set(cnj, {
-      numeroCNJ: cnj,
-      vara: src.orgaoJulgador?.nome || 'Vara Cível',
-      comarca: src.orgaoJulgador?.nome?.includes('SERRA') ? 'Serra' : 'Vitória',
-      tribunal: 'TJES',
-      classe: src.classe?.nome || 'Procedimento Comum Cível',
-      poloAtivo: src.poloAtivo?.[0]?.nome || 'Polo Ativo',
-      poloPassivo: src.poloPassivo?.[0]?.nome || 'Polo Passivo',
-      clienteRepresentado: 'RECLAMADA',
-      estagio: movsArr.length > 0 ? movsArr[0].titulo : 'Em andamento',
-      distribuicao: src.dataAjuizamento ? new Date(src.dataAjuizamento.substring(0,4) + '-' + src.dataAjuizamento.substring(4,6) + '-' + src.dataAjuizamento.substring(6,8) + 'T12:00:00') : new Date(),
-      movimentacoes: JSON.stringify(movsArr.slice(0, 20))
-    });
-  }
-
-  // Mapear TRT17
-  for (const hit of trtHits) {
-    const src = hit._source || {};
-    const rawCNJ = src.numeroProcesso;
-    if (!rawCNJ) continue;
-
-    let cnj = rawCNJ;
-    if (!cnj.includes('-') && cnj.length === 20) {
-      cnj = `${cnj.substring(0,7)}-${cnj.substring(7,9)}.${cnj.substring(9,13)}.${cnj.substring(13,14)}.${cnj.substring(14,16)}.${cnj.substring(16,20)}`;
-    }
-
-    const movsArr = (src.movimentos || []).map(m => ({
-      data: m.dataHora ? m.dataHora.split('T')[0] : new Date().toISOString().split('T')[0],
-      titulo: m.nome || 'Andamento',
-      desc: m.complementosTabelados ? m.complementosTabelados.map(c => `${c.nome}: ${c.valor || c.descricao || ''}`).join(', ') : 'Movimentação registrada no TRT-17.'
-    }));
-
-    processosMap.set(cnj, {
-      numeroCNJ: cnj,
-      vara: src.orgaoJulgador?.nome || 'Vara do Trabalho',
-      comarca: 'Vitória',
-      tribunal: 'TRT-17',
-      classe: src.classe?.nome || 'Ação Trabalhista (ATSum)',
-      poloAtivo: src.poloAtivo?.[0]?.nome || 'Polo Ativo',
-      poloPassivo: src.poloPassivo?.[0]?.nome || 'Polo Passivo',
-      clienteRepresentado: 'RECLAMANTE',
-      estagio: movsArr.length > 0 ? movsArr[0].titulo : 'Em andamento',
-      distribuicao: src.dataAjuizamento ? new Date(src.dataAjuizamento.substring(0,4) + '-' + src.dataAjuizamento.substring(4,6) + '-' + src.dataAjuizamento.substring(6,8) + 'T12:00:00') : new Date(),
-      movimentacoes: JSON.stringify(movsArr.slice(0, 20))
-    });
-  }
-
-  // Mapear ComunicaAPI
-  for (const item of comunicaItems) {
-    const rawCNJ = item.numero_processo || item.numeroprocessocommascara;
-    if (!rawCNJ) continue;
-
-    let cnj = rawCNJ;
-    if (!cnj.includes('-') && cnj.length === 20) {
-      cnj = `${cnj.substring(0,7)}-${cnj.substring(7,9)}.${cnj.substring(9,13)}.${cnj.substring(13,14)}.${cnj.substring(14,16)}.${cnj.substring(16,20)}`;
-    }
-
-    if (!processosMap.has(cnj)) {
-      const poloAtivo = item.destinatarios?.find(d => d.polo === 'A')?.nome || 'Polo Ativo';
-      const poloPassivo = item.destinatarios?.find(d => d.polo === 'P')?.nome || 'Polo Passivo';
-
-      processosMap.set(cnj, {
-        numeroCNJ: cnj,
-        vara: item.nomeOrgao || 'Vara Judicial',
-        comarca: item.nomeOrgao?.includes('Serra') ? 'Serra' : 'Vitória',
-        tribunal: item.siglaTribunal || 'TJES',
-        classe: item.nomeClasse || 'Procedimento Judicial',
-        poloAtivo,
-        poloPassivo,
-        clienteRepresentado: 'RECLAMANTE',
-        estagio: item.tipoComunicacao || 'Em andamento',
-        distribuicao: item.data_disponibilizacao ? new Date(item.data_disponibilizacao + 'T12:00:00') : new Date(),
-        movimentacoes: JSON.stringify([{
-          data: item.data_disponibilizacao || new Date().toISOString().split('T')[0],
-          titulo: item.tipoComunicacao || 'Intimação',
-          desc: item.texto ? item.texto.substring(0, 150) + '...' : 'Publicação no Diário Eletrônico.'
-        }])
+    let clientCounter = 5000;
+    for (const p of processosList) {
+      const clientObj = p.cliente || { name: p.poloAtivo || 'Cliente' };
+      
+      let cliente = await prisma.client.findFirst({
+        where: { name: { equals: clientObj.name } }
       });
-    }
-  }
 
-  let counter = 1000;
-  for (const pData of processosMap.values()) {
-    const nomeClienteCRM = pData.poloAtivo !== 'Polo Ativo' ? pData.poloAtivo : (pData.poloPassivo !== 'Polo Passivo' ? pData.poloPassivo : 'Dr. Rudson Fidellis Nunes');
-    
-    let cliente = await prisma.client.findFirst({ where: { name: { equals: nomeClienteCRM } } });
-    if (!cliente) {
-      counter++;
-      const pseudoCpfCnpj = `999.888.${counter}-${String(counter).slice(-2)}`;
-      cliente = await prisma.client.create({
-        data: {
-          name: nomeClienteCRM,
-          type: nomeClienteCRM.includes('LTDA') || nomeClienteCRM.includes('S.A') || nomeClienteCRM.includes('SA') ? 'PESSOA_JURIDICA' : 'PESSOA_FISICA',
-          cpfCnpj: pseudoCpfCnpj,
-          email: `${nomeClienteCRM.toLowerCase().replace(/[^a-z0-9]/g, '.')}@email.com`,
-          phone: '(27) 99999-0000',
-          status: 'ATIVO'
+      if (!cliente) {
+        clientCounter++;
+        cliente = await prisma.client.create({
+          data: {
+            name: clientObj.name,
+            type: clientObj.type || (clientObj.name.includes('LTDA') || clientObj.name.includes('S.A') || clientObj.name.includes('SA') ? 'PESSOA_JURIDICA' : 'PESSOA_FISICA'),
+            cpfCnpj: clientObj.cpfCnpj || `888.777.${clientCounter}-${String(clientCounter).slice(-2)}`,
+            email: clientObj.email || `${clientObj.name.toLowerCase().replace(/[^a-z0-9]/g, '.')}@email.com`,
+            phone: clientObj.phone || '(27) 99999-0000',
+            status: 'ATIVO'
+          }
+        });
+      }
+
+      await prisma.processo.upsert({
+        where: { numeroCNJ: p.numeroCNJ },
+        update: {
+          vara: p.vara,
+          comarca: p.comarca,
+          tribunal: p.tribunal,
+          classe: p.classe,
+          poloAtivo: p.poloAtivo,
+          poloPassivo: p.poloPassivo,
+          clienteRepresentado: p.clienteRepresentado || 'RECLAMADA',
+          estagio: p.estagio,
+          distribuicao: p.distribuicao ? new Date(p.distribuicao) : new Date(),
+          movimentacoes: p.movimentacoes
+        },
+        create: {
+          numeroCNJ: p.numeroCNJ,
+          vara: p.vara,
+          comarca: p.comarca,
+          tribunal: p.tribunal,
+          classe: p.classe,
+          poloAtivo: p.poloAtivo,
+          poloPassivo: p.poloPassivo,
+          clienteRepresentado: p.clienteRepresentado || 'RECLAMADA',
+          estagio: p.estagio,
+          distribuicao: p.distribuicao ? new Date(p.distribuicao) : new Date(),
+          movimentacoes: p.movimentacoes,
+          clienteId: cliente.id
         }
       });
     }
-
-    await prisma.processo.upsert({
-      where: { numeroCNJ: pData.numeroCNJ },
-      update: {
-        vara: pData.vara,
-        comarca: pData.comarca,
-        tribunal: pData.tribunal,
-        classe: pData.classe,
-        poloAtivo: pData.poloAtivo,
-        poloPassivo: pData.poloPassivo,
-        clienteRepresentado: pData.clienteRepresentado,
-        estagio: pData.estagio,
-        distribuicao: pData.distribuicao,
-        movimentacoes: pData.movimentacoes
-      },
-      create: {
-        numeroCNJ: pData.numeroCNJ,
-        vara: pData.vara,
-        comarca: pData.comarca,
-        tribunal: pData.tribunal,
-        classe: pData.classe,
-        poloAtivo: pData.poloAtivo,
-        poloPassivo: pData.poloPassivo,
-        clienteRepresentado: pData.clienteRepresentado,
-        estagio: pData.estagio,
-        distribuicao: pData.distribuicao,
-        movimentacoes: pData.movimentacoes,
-        clienteId: cliente.id
-      }
-    });
   }
 
-  // 4. Cadastrar Intimação Real de Teste (Sentença de Extinção de 08/07/2026)
+  // 4. Cadastrar Intimação Real (Sentença de Extinção de 08/07/2026)
   const procRef = await prisma.processo.findUnique({ where: { numeroCNJ: '0021184-73.2017.8.08.0048' } });
   
   const intimacaoExiste = await prisma.intimacao.findFirst({
