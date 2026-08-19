@@ -371,64 +371,66 @@ app.post('/api/processos/:id/upload-autos', authMiddleware, async (req: Request,
       return res.status(400).json({ success: false, error: 'O conteúdo em Base64 do arquivo PDF é obrigatório.' });
     }
 
-    // 1. Extrair texto do PDF usando o pdf-parse
-    let parsedText = '';
-    try {
-      const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
-      const textResult = await pdfParse(buffer);
-      parsedText = textResult.text || '';
-    } catch (pdfError: any) {
-      console.error('Erro ao ler PDF:', pdfError);
-      return res.status(400).json({ success: false, error: 'Falha ao processar o arquivo PDF. Garanta que o PDF é válido e contém texto legível.' });
-    }
-
-    if (!parsedText || parsedText.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'O PDF enviado não contém texto extraível (pode ser uma imagem escaneada sem OCR).' });
-    }
-
-    // 2. Verificar a existência da chave do Gemini no backend/.env
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
       return res.status(400).json({
         success: false,
         errorType: 'MISSING_GEMINI_KEY',
-        error: 'Chave GEMINI_API_KEY não configurada no arquivo backend/.env do servidor.'
+        error: 'Chave GEMINI_API_KEY não configurada no servidor backend.'
       });
     }
 
-    // 3. Chamar a API do Gemini 1.5 Flash para ler e estruturar as informações
-    const prompt = `Você é um analista jurídico especializado em autuação processual de tribunais brasileiros (TJES, TRT-17, etc.).
-Analise o seguinte texto extraído de uma cópia integral dos autos de um processo em PDF e extraia as informações cadastrais e o histórico de andamentos (movimentações) do processo.
+    // 1. Tentar extração básica de texto como auxílio (se falhar, o Gemini lê o PDF diretamente)
+    let parsedText = '';
+    try {
+      const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
+      const textResult = await pdfParse(buffer);
+      parsedText = textResult?.text || '';
+    } catch (pdfErr) {
+      console.log('[PDF] pdf-parse falhou ou o PDF é complexo/escaneado. Utilizando leitor nativo multimodal do Gemini...');
+    }
 
-Texto dos Autos:
-"""
-${parsedText.substring(0, 40000)}
-"""
+    const cleanBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
 
-Você deve retornar APENAS um objeto JSON válido (sem markdown, sem blocos de código \`\`\`json) no seguinte formato exato:
+    // 2. Chamar a API do Gemini 1.5 Flash enviando o PDF Base64 diretamente (Multimodal)
+    const prompt = `Você é um analista jurídico especialista em leitura e autuação de cópias integrais dos autos de processos brasileiros (TJES, TRT-17, TJSP, etc.).
+Analise a cópia dos autos em PDF anexada e extraia as informações cadastrais e o histórico completo de andamentos (movimentações).
+
+Retorne APENAS um objeto JSON válido (sem markdown, sem blocos de código \`\`\`json) no seguinte formato exato:
 {
-  "classe": "Classe do processo (ex: ATSum, Procedimento Comum Cível)",
+  "classe": "Classe do processo (ex: ATSum, Procedimento Comum Cível, Execução)",
   "poloAtivo": "Nome do autor / reclamante principal",
   "poloPassivo": "Nome do réu / reclamada principal",
   "vara": "Nome do órgão julgador / vara (ex: 11ª Vara do Trabalho de Vitória)",
   "comarca": "Nome da comarca (ex: Serra, Vitória)",
-  "distribuicao": "Data de autuação/distribuição no formato YYYY-MM-DD",
+  "distribuicao": "Data de autuação no formato YYYY-MM-DD",
   "estagio": "Fase/Estágio processual sugerido (Conhecimento, Recurso, Execução ou Julgamento)",
   "movimentacoes": [
     {
       "data": "Data do andamento no formato YYYY-MM-DD",
-      "titulo": "Título formal do andamento em linguagem forense padrão (ex: Juntada de Petição, Conclusão para Sentença, Despacho Proferido)",
+      "titulo": "Título formal do andamento em linguagem forense padrão",
       "desc": "Descrição resumida e clara do andamento jurídico."
     }
   ]
 }
 
-Garanta que:
-1. Os nomes das partes e da vara sejam extraídos com fidelidade.
-2. A lista de movimentações seja ordenada da mais recente para a mais antiga.
-3. Não insira caracteres quebrados ou codificações incorretas.`;
+Regras:
+1. Extraia o nome exato dos polos ativo e passivo, vara e classe.
+2. Ordene a lista de movimentações da mais recente para a mais antiga.
+3. Se houver trecho extraído do texto: ${parsedText.substring(0, 3000)}`;
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+    
+    const geminiParts: any[] = [
+      { text: prompt },
+      {
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: cleanBase64
+        }
+      }
+    ];
+
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
       headers: {
@@ -436,7 +438,7 @@ Garanta que:
       },
       body: JSON.stringify({
         contents: [{
-          parts: [{ text: prompt }]
+          parts: geminiParts
         }]
       })
     });
