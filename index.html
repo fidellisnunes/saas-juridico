@@ -1671,8 +1671,8 @@
     <div id="detalhes-processo-full" class="tab-content">
       <header class="header-bar" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div style="display: flex; align-items: center; gap: 1.25rem;">
-          <button class="btn-action" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.85rem;" onclick="switchTab('processos')">
-            <i class="fa-solid fa-arrow-left"></i> Voltar para Lista
+          <button class="btn-action" style="background: linear-gradient(135deg, var(--gold-primary), #B48A3E); color: #000; font-weight: 700; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(245,158,11,0.25); display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onclick="switchTab('processos')">
+            <i class="fa-solid fa-arrow-left"></i> Voltar para Lista de Processos
           </button>
           <div>
             <h1 style="font-size: 1.5rem; display: inline-flex; align-items: center; gap: 0.75rem; font-family: var(--font-serif);" id="det-full-cnj-titulo">Processo <span style="color: var(--gold-primary);">0000000-00.0000.0.00.0000</span></h1>
@@ -2308,7 +2308,12 @@
       });
     });
 
-    function switchTab(tabId) {
+    function switchTab(tabId, pushHistory = true) {
+      if (pushHistory) {
+        try {
+          window.history.pushState({ tab: tabId }, '', '#' + tabId);
+        } catch(e){}
+      }
       const targetMenu = document.querySelector(`.menu-item[data-tab="${tabId}"]`);
       if (targetMenu) {
         targetMenu.click();
@@ -2321,6 +2326,19 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
+
+    // Suporte ao botão 'Voltar' do navegador (Evita sair do sistema ao clicar na seta do navegador)
+    window.addEventListener('popstate', (event) => {
+      if (event.state) {
+        if (event.state.processoId) {
+          verDetalhesProcesso(event.state.processoId, false);
+        } else if (event.state.tab) {
+          switchTab(event.state.tab, false);
+        }
+      } else {
+        switchTab('processos', false);
+      }
+    });
 
     async function carregarDadosDashboard() {
       try {
@@ -3414,9 +3432,15 @@
 
     let globalEditProcessoId = null;
 
-    function verDetalhesProcesso(id) {
+    function verDetalhesProcesso(id, pushHistory = true) {
       const proc = listagemProcessosGeral.find(p => p.id === id);
       if (!proc) return;
+
+      if (pushHistory) {
+        try {
+          window.history.pushState({ tab: 'detalhes-processo-full', processoId: id }, '', '#processo-' + proc.numeroCNJ);
+        } catch(e){}
+      }
 
       globalEditProcessoId = id;
       cancelarEdicaoFull(); // Abre em modo visualização por padrão
@@ -3479,7 +3503,7 @@
         containerMov.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 2rem;">Nenhum andamento registrado para este processo.</p>`;
       }
 
-      switchTab('detalhes-processo-full');
+      switchTab('detalhes-processo-full', false);
     }
 
     function habilitarEdicaoFull() {
@@ -3585,7 +3609,7 @@
 
           const result = await response.json();
           if (result.success) {
-            statusDiv.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--color-success)"></i> Autos importados com sucesso!`;
+            statusDiv.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--color-success)"></i> Autos e movimentações importados com sucesso!`;
             
             // Atualizar lista local
             const index = listagemProcessosGeral.findIndex(p => p.id === globalEditProcessoId);
@@ -3593,9 +3617,14 @@
               listagemProcessosGeral[index] = result.data;
             }
 
+            // Recarregar tabelas e dados do dashboard
+            carregarProcessosTabela();
+            carregarDadosDashboard();
+            carregarClientesCRM();
+
             // Recarregar tela de detalhes
-            verDetalhesProcesso(globalEditProcessoId);
-            alert("Histórico integral dos autos extraído e importado com sucesso! A linha do tempo do processo foi atualizada.");
+            verDetalhesProcesso(globalEditProcessoId, false);
+            alert("Histórico integral dos autos e dados das partes extraídos e atualizados com sucesso via IA Gemini!");
           } else {
             statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Erro ao processar arquivo`;
             if (result.errorType === 'MISSING_GEMINI_KEY') {

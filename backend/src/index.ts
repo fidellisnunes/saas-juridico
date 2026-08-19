@@ -495,6 +495,38 @@ Garanta que:
       include: { cliente: true }
     });
 
+    // 6. Se houver cliente vinculado ao processo, atualiza o nome no CRM
+    if (proc.clienteId) {
+      const nomeRepresentado = proc.clienteRepresentado === 'RECLAMANTE' ? extracted.poloAtivo : extracted.poloPassivo;
+      if (nomeRepresentado && nomeRepresentado.trim()) {
+        try {
+          await prisma.client.update({
+            where: { id: proc.clienteId },
+            data: { name: sanitizarString(nomeRepresentado) }
+          });
+        } catch (clientErr) {
+          console.warn('Aviso: Não foi possível atualizar nome do cliente no CRM:', clientErr);
+        }
+      }
+    }
+
+    // 7. Salvar cópia do PDF no Google Drive (se montado)
+    const driveUploadsFolder = 'G:\\Meu Drive\\PROFISSIONAL\\FIDELLIS NUNES ADVOCACIA\\sistema\\uploads';
+    if (fs.existsSync(driveUploadsFolder)) {
+      try {
+        const pdfFileName = `${proc.numeroCNJ.replace(/\D/g, '')}_autos.pdf`;
+        const pdfPath = path.join(driveUploadsFolder, pdfFileName);
+        const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
+        fs.writeFileSync(pdfPath, buffer);
+        console.log(`☁️ [GOOGLE DRIVE] Cópia dos autos em PDF salva em: ${pdfPath}`);
+      } catch (saveErr: any) {
+        console.warn('Aviso ao salvar PDF no Google Drive:', saveErr.message);
+      }
+    }
+
+    // 8. Sincronizar backup do banco de dados no Google Drive
+    syncGoogleDriveBackups();
+
     res.json({ success: true, data: atualizado });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
