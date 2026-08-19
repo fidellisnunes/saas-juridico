@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npx prisma db push && node seed.js && tsc",
     "test": "tsc && node dist/tests/run-tests.js",
-    "start": "tsc && node dist/index.js"
+    "start": "npx prisma db push && node seed.js && node dist/index.js"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
