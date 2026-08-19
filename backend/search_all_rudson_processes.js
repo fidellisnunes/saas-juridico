@@ -51,53 +51,19 @@ async function buscarComunicaAPI() {
 }
 
 async function main() {
-  console.log('🌱 Semeando banco de dados SQLite com TODOS os processos de Dr. Rudson Fidellis Nunes...');
+  console.log('🔍 Buscando TODOS os processos em nome de Rudson Fidellis Nunes (OAB/ES 35.054)...');
 
-  // 1. Criar ou atualizar Usuário principal com o e-mail oficial zoho
-  const emailOficial = 'rudson@fidellisnunes.adv.br';
-  
-  let user = await prisma.user.findUnique({ where: { email: emailOficial } });
-
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: emailOficial,
-        password: '123',
-        name: 'Dr. Rudson Fidellis Nunes',
-        role: 'ADVOGADO'
-      }
-    });
-    console.log(`✅ Usuário criado: ${user.email}`);
-  } else {
-    console.log(`ℹ️ Usuário ${user.email} já existe.`);
-  }
-
-  // 2. Criar ou vincular Advogado (OAB/ES 35.054)
-  let advogado = await prisma.advogado.findFirst({ where: { oab: '35.054', uf: 'ES' } });
-
-  if (!advogado) {
-    advogado = await prisma.advogado.create({
-      data: {
-        userId: user.id,
-        oab: '35.054',
-        uf: 'ES'
-      }
-    });
-    console.log(`✅ Advogado vinculado: OAB/ES ${advogado.oab}`);
-  }
-
-  // 3. Buscar todos os processos nas APIs oficiais (TJES, TRT17, PJe ComunicaAPI)
   const [tjesHits, trtHits, comunicaItems] = await Promise.all([
     buscarDatajud('api_publica_tjes'),
     buscarDatajud('api_publica_trt17'),
     buscarComunicaAPI()
   ]);
 
-  console.log(`📊 Pesquisa concluída: TJES=${tjesHits.length}, TRT17=${trtHits.length}, ComunicaAPI=${comunicaItems.length}`);
+  console.log(`📊 Encontrados: TJES DataJud=${tjesHits.length}, TRT-17 DataJud=${trtHits.length}, ComunicaAPI=${comunicaItems.length}`);
 
   const processosMap = new Map();
 
-  // Mapear TJES
+  // Processar TJES Hits
   for (const hit of tjesHits) {
     const src = hit._source || {};
     const rawCNJ = src.numeroProcesso;
@@ -129,7 +95,7 @@ async function main() {
     });
   }
 
-  // Mapear TRT17
+  // Processar TRT-17 Hits
   for (const hit of trtHits) {
     const src = hit._source || {};
     const rawCNJ = src.numeroProcesso;
@@ -161,7 +127,7 @@ async function main() {
     });
   }
 
-  // Mapear ComunicaAPI
+  // Processar ComunicaAPI Items
   for (const item of comunicaItems) {
     const rawCNJ = item.numero_processo || item.numeroprocessocommascara;
     if (!rawCNJ) continue;
@@ -195,7 +161,25 @@ async function main() {
     }
   }
 
-  let counter = 1000;
+  console.log(`📋 Total de processos únicos mapeados: ${processosMap.size}`);
+
+  // Buscar cliente default
+  let defaultClient = await prisma.client.findFirst();
+  if (!defaultClient) {
+    defaultClient = await prisma.client.create({
+      data: {
+        name: 'Dr. Rudson Fidellis Nunes',
+        type: 'PESSOA_FISICA',
+        cpfCnpj: '000.000.000-00',
+        email: 'rudson@fidellisnunes.adv.br',
+        phone: '(27) 99999-0000',
+        status: 'ATIVO'
+      }
+    });
+  }
+
+  let counter = 100;
+  // Upsert de todos os processos mapeados no SQLite local
   for (const pData of processosMap.values()) {
     const nomeClienteCRM = pData.poloAtivo !== 'Polo Ativo' ? pData.poloAtivo : (pData.poloPassivo !== 'Polo Passivo' ? pData.poloPassivo : 'Dr. Rudson Fidellis Nunes');
     
@@ -215,7 +199,7 @@ async function main() {
       });
     }
 
-    await prisma.processo.upsert({
+    const saved = await prisma.processo.upsert({
       where: { numeroCNJ: pData.numeroCNJ },
       update: {
         vara: pData.vara,
@@ -244,34 +228,13 @@ async function main() {
         clienteId: cliente.id
       }
     });
-  }
 
-  // 4. Cadastrar Intimação Real de Teste (Sentença de Extinção de 08/07/2026)
-  const procRef = await prisma.processo.findUnique({ where: { numeroCNJ: '0021184-73.2017.8.08.0048' } });
-  
-  const intimacaoExiste = await prisma.intimacao.findFirst({
-    where: { textoCompleto: { contains: 'JULGO EXTINTA a presente execução' } }
-  });
-
-  if (!intimacaoExiste) {
-    await prisma.intimacao.create({
-      data: {
-        textoCompleto: `ESTADO DO ESPÍRITO SANTO PODER JUDICIÁRIO Juízo de Serra - Comarca da Capital - 2ª Vara Cível Avenida Carapebus, 226, Fórum Des Antônio José M. Feu Rosa, São Geraldo, SERRA - ES - CEP: 29163-392 Telefone:(27) 33574814 PROCESSO Nº 0021184-73.2017.8.08.0048 EXECUÇÃO DE TÍTULO EXTRAJUDICIAL (12154) EXEQUENTE: MRV ENGENHARIA E PARTICIPACOES S.A EXECUTADO: RUDSON FIDELLIS NUNES Advogado do(a) EXEQUENTE: RICARDO LOPES GODOY - MG77167 SENTENÇA Trata-se de Ação de Execução de Título Extrajudicial em que as partes, por meio da petição juntada ao ID 93884120, noticiaram a celebração de acordo extrajudicial, requerendo a sua homologação e a expedição de alvará judicial para o levantamento de valores bloqueados, conforme os termos estabelecidos na minuta de acordo assinada e anexada no ID 93884125. Verifico que o negócio jurídico celebrado entre as partes preserva os seus interesses, envolve agentes capazes e versa sobre direitos patrimoniais disponíveis, não havendo qualquer óbice legal à sua validação. Ante o exposto: 1. HOMOLOGO, por sentença, para que produza os seus jurídicos e legais efeitos, o acordo extrajudicial firmado entre as partes constante no instrumento de ID 93884125. 2. JULGO EXTINTA a presente execução, com resolução de mérito, com fulcro nos artigos 487, inciso III, alínea "b", e 924, inciso II, ambos do Código de Processo Civil. Serra/ES, 08/07/2026. Kelly Kiefer Juíza de Direito`,
-        fonte: 'Diário de Justiça Eletrônico Nacional - TJES',
-        dataPublicacao: new Date('2026-07-08T00:00:00.000Z'),
-        statusLeitura: false,
-        processoId: procRef ? procRef.id : null,
-        advogadoId: advogado.id
-      }
-    });
+    console.log(`✅ Processo atualizado/salvo: ${saved.numeroCNJ} | ${saved.tribunal} | ${saved.classe}`);
   }
 
   const countTotal = await prisma.processo.count();
-  console.log(`🎉 Banco de dados SQLite semeado! Total de processos cadastrados: ${countTotal}`);
+  console.log(`🎉 Total de processos agora no sistema: ${countTotal}`);
   await prisma.$disconnect();
 }
 
-main().catch(e => {
-  console.error('❌ Erro no seed:', e);
-  process.exit(1);
-});
+main();
