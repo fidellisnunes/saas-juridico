@@ -3627,14 +3627,18 @@
         statusDiv.innerHTML = `<i class="fa-solid fa-brain fa-bounce"></i> Processando autos e extraindo histórico com IA...`;
 
         try {
-          const geminiKeyHeader = localStorage.getItem('gemini_api_key') || "";
+          const reqHeaders = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          };
+          const geminiKeyHeader = localStorage.getItem('gemini_api_key');
+          if (geminiKeyHeader && geminiKeyHeader.trim()) {
+            reqHeaders['x-gemini-key'] = geminiKeyHeader.trim();
+          }
+
           const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}/upload-autos`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'x-gemini-key': geminiKeyHeader
-            },
+            headers: reqHeaders,
             body: JSON.stringify({
               filename: file.name,
               filesize: file.size,
@@ -3682,9 +3686,9 @@
             }
           }
         } catch (err) {
-          console.error(err);
-          statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Erro na requisição`;
-          alert("Erro de comunicação com o servidor.");
+          console.error('Erro no upload de autos:', err);
+          statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Falha no envio`;
+          alert("Falha de comunicação com o servidor ao enviar os autos.\n\nDetalhes: " + (err.message || err));
         }
       };
 
