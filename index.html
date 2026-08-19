@@ -1353,7 +1353,7 @@
       <div class="login-subtitle">Gestão e Controle para Escritório de Advocacia</div>
       <div class="login-form">
         <div class="login-input-group">
-          <input type="email" id="login-email" class="login-input" placeholder="Seu e-mail profissional" value="rudson.nunes@advocacia.com.br">
+          <input type="email" id="login-email" class="login-input" placeholder="Seu e-mail profissional" value="rudson@fidellisnunes.adv.br">
           <i class="fa-solid fa-envelope login-icon"></i>
         </div>
         <div class="login-input-group">
@@ -1422,10 +1422,14 @@
           <span class="user-name" title="Dr. Rudson Fidellis Nunes" id="sidebar-user-name">Dr. Rudson Fidellis Nunes</span>
           <span class="user-role" id="sidebar-user-role">OAB/ES 35.054</span>
         </div>
+      <div style="display: flex; gap: 0.5rem; width: 100%;">
+        <button class="btn-action" style="flex: 1; padding: 0.4rem; justify-content: center; background: rgba(245, 158, 11, 0.1); color: var(--gold-primary); border: 1px solid rgba(245, 158, 11, 0.2); gap: 0.35rem; font-size: 0.75rem;" onclick="abrirAlterarSenha()">
+          <i class="fa-solid fa-key"></i> <span class="logout-btn-text">Senha</span>
+        </button>
+        <button class="btn-action" style="flex: 1; padding: 0.4rem; justify-content: center; background: rgba(255, 107, 107, 0.1); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.2); gap: 0.35rem; font-size: 0.75rem;" onclick="executarLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i> <span class="logout-btn-text">Sair</span>
+        </button>
       </div>
-      <button class="btn-action" style="width: 100%; padding: 0.4rem; justify-content: center; background: rgba(255, 107, 107, 0.1); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.2); gap: 0.5rem;" onclick="executarLogout()">
-        <i class="fa-solid fa-right-from-bracket"></i> <span class="logout-btn-text">Sair</span>
-      </button>
     </div>
   </aside>
 
@@ -2204,6 +2208,35 @@
       localStorage.removeItem('saas_juridico_token');
       document.getElementById('login-overlay').classList.remove('hidden');
       document.getElementById('login-password').value = "";
+    }
+
+    async function abrirAlterarSenha() {
+      const novaSenha = prompt("Digite a sua nova senha de acesso:");
+      if (!novaSenha || novaSenha.trim().length < 3) {
+        if (novaSenha !== null) alert("A senha deve conter pelo menos 3 caracteres.");
+        return;
+      }
+
+      const token = localStorage.getItem('saas_juridico_token');
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/change-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ newPassword: novaSenha.trim() })
+        });
+        const result = await response.json();
+        if (result.success) {
+          alert("Senha alterada com sucesso! Utilize sua nova senha nos próximos acessos.");
+        } else {
+          alert("Erro ao alterar senha: " + result.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Erro de comunicação com o servidor.");
+      }
     }
 
     async function carregarProcessosDropdowns() {

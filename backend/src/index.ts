@@ -189,6 +189,26 @@ app.get('/api/auth/me', authMiddleware, (req: Request, res: Response) => {
   });
 });
 
+app.post('/api/auth/change-password', authMiddleware, async (req: Request, res: Response) => {
+  const userReq = (req as any).user;
+  const { newPassword } = req.body;
+
+  if (!newPassword || newPassword.trim().length < 3) {
+    return res.status(400).json({ success: false, error: 'A nova senha deve conter pelo menos 3 caracteres.' });
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: userReq.id },
+      data: { password: newPassword.trim() }
+    });
+
+    res.json({ success: true, message: 'Senha alterada com sucesso!' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Endpoint do Painel Principal (Dashboard) - Protegido
 app.get('/api/dashboard', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -643,7 +663,7 @@ app.post('/api/processos/consultar', authMiddleware, async (req: Request, res: R
     const nomeClienteCRM = dadosProcesso.clienteRepresentado === 'RECLAMANTE' ? dadosProcesso.poloAtivo : dadosProcesso.poloPassivo;
 
     let cliente = await prisma.client.findFirst({
-      where: { name: { equals: nomeClienteCRM, mode: 'insensitive' } }
+      where: { name: { equals: nomeClienteCRM } }
     });
 
     if (!cliente) {
@@ -850,7 +870,7 @@ app.post('/api/processos/consultar-tjes', authMiddleware, async (req: Request, r
     const nomeClienteCRM = representado === 'RECLAMANTE' ? poloAtivoNome.split(' E ')[0] : poloPassivoNome.split(' E ')[0];
 
     let cliente = await prisma.client.findFirst({
-      where: { name: { equals: nomeClienteCRM, mode: 'insensitive' } }
+      where: { name: { equals: nomeClienteCRM } }
     });
 
     if (!cliente) {
@@ -977,14 +997,14 @@ app.put('/api/processos/:id', authMiddleware, async (req: Request, res: Response
         });
       } else {
         // Buscar no CRM por nome
-        clienteCRM = await prisma.client.findFirst({
-          where: { name: { equals: nomeRepresentado, mode: 'insensitive' } }
+        let clienteExistente = await prisma.client.findFirst({
+          where: { name: { equals: nomeRepresentado } }
         });
 
-        if (clienteCRM) {
+        if (clienteExistente) {
           // Atualiza CPF/CNPJ
           clienteCRM = await prisma.client.update({
-            where: { id: clienteCRM.id },
+            where: { id: clienteExistente.id },
             data: { cpfCnpj: formatado }
           });
         } else {
