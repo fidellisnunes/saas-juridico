@@ -1571,8 +1571,31 @@ async function autoSeedDatabase() {
   }
 }
 
+function syncGoogleDriveBackups() {
+  const driveBackupFolder = 'G:\\Meu Drive\\PROFISSIONAL\\FIDELLIS NUNES ADVOCACIA\\sistema\\backups';
+  try {
+    if (fs.existsSync(driveBackupFolder)) {
+      const dbSrc = path.join(__dirname, '..', 'prisma', 'dev.db');
+      const jsonSrc = path.join(__dirname, '..', 'all_processes.json');
+      const today = new Date().toISOString().split('T')[0];
+
+      if (fs.existsSync(dbSrc)) {
+        fs.copyFileSync(dbSrc, path.join(driveBackupFolder, `dev_backup_${today}.db`));
+        fs.copyFileSync(dbSrc, path.join(driveBackupFolder, 'dev.db'));
+      }
+      if (fs.existsSync(jsonSrc)) {
+        fs.copyFileSync(jsonSrc, path.join(driveBackupFolder, 'all_processes_backup.json'));
+      }
+      console.log('☁️ [GOOGLE DRIVE] Backup automático sincronizado no Google Drive!');
+    }
+  } catch (e: any) {
+    console.warn('⚠️ [GOOGLE DRIVE] Sincronização offline ou pasta não encontrada:', e.message);
+  }
+}
+
 // Inicialização
 app.listen(port, async () => {
   console.log(`🚀 Servidor backend rodando na porta ${port}`);
   await autoSeedDatabase();
+  syncGoogleDriveBackups();
 });
