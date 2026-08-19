@@ -394,8 +394,14 @@ app.post('/api/processos/:id/upload-autos', authMiddleware, async (req: Request,
   const { filename, filesize, base64 } = req.body;
 
   try {
-    const proc = await prisma.processo.findUnique({
-      where: { id },
+    const proc = await prisma.processo.findFirst({
+      where: {
+        OR: [
+          { id },
+          { numeroCNJ: id },
+          { numeroCNJ: id.replace(/\D/g, '') }
+        ]
+      },
       include: { cliente: true }
     });
 
@@ -519,7 +525,7 @@ Regras:
 
     // 5. Atualizar o processo no banco de dados com as informações reais extraídas
     const atualizado = await prisma.processo.update({
-      where: { id },
+      where: { id: proc.id },
       data: {
         classe: sanitizarString(extracted.classe || proc.classe || 'ATSum'),
         poloAtivo: sanitizarString(extracted.poloAtivo || proc.poloAtivo || 'Polo Ativo'),
@@ -1029,8 +1035,14 @@ app.put('/api/processos/:id', authMiddleware, async (req: Request, res: Response
   const { classe, vara, clienteRepresentado, poloAtivo, poloPassivo, cpfCnpj } = req.body;
 
   try {
-    const procAtual = await prisma.processo.findUnique({
-      where: { id },
+    const procAtual = await prisma.processo.findFirst({
+      where: {
+        OR: [
+          { id },
+          { numeroCNJ: id },
+          { numeroCNJ: id.replace(/\D/g, '') }
+        ]
+      },
       include: { cliente: true }
     });
 
@@ -1109,8 +1121,8 @@ app.put('/api/processos/:id', authMiddleware, async (req: Request, res: Response
       }
     }
 
-    const processo = await prisma.processo.update({
-      where: { id },
+    const processoAtualizado = await prisma.processo.update({
+      where: { id: procAtual.id },
       data: {
         classe: classe !== undefined ? classe : procAtual.classe,
         vara: vara !== undefined ? vara : procAtual.vara,
@@ -1124,7 +1136,7 @@ app.put('/api/processos/:id', authMiddleware, async (req: Request, res: Response
       }
     });
 
-    res.json({ success: true, data: processo });
+    res.json({ success: true, data: processoAtualizado });
   } catch (error: any) {
     console.error('Erro ao atualizar processo manualmente:', error);
     res.status(500).json({ success: false, error: error.message });
