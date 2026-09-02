@@ -16,11 +16,12 @@ const djen = new DjenService(prisma);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.raw({ type: ['application/pdf', 'application/octet-stream'], limit: '50mb' }));
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-gemini-key');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-gemini-key, x-filename');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -205,13 +206,28 @@ app.post('/api/auth/change-password', authMiddleware, async (req: Request, res: 
     return res.status(400).json({ success: false, error: 'A nova senha deve conter pelo menos 3 caracteres.' });
   }
 
+  const cleanPass = newPassword.trim();
+
   try {
     await prisma.user.update({
       where: { id: userReq.id },
-      data: { password: newPassword.trim() }
+      data: { password: cleanPass }
     });
 
-    res.json({ success: true, message: 'Senha alterada com sucesso!' });
+    // Persistir senha em arquivo para nunca resetar ao reiniciar servidor
+    try {
+      const localCred = path.join(__dirname, '..', 'user_credentials.json');
+      fs.writeFileSync(localCred, JSON.stringify({ password: cleanPass }, null, 2));
+
+      const driveFolder = 'G:\\Meu Drive\\PROFISSIONAL\\FIDELLIS NUNES ADVOCACIA\\sistema\\database';
+      if (fs.existsSync(driveFolder)) {
+        fs.writeFileSync(path.join(driveFolder, 'user_credentials.json'), JSON.stringify({ password: cleanPass }, null, 2));
+      }
+    } catch (saveErr) {
+      console.warn('Aviso: Não foi possível salvar credenciais no disco/Drive:', saveErr);
+    }
+
+    res.json({ success: true, message: 'Senha alterada e salva com sucesso!' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -409,24 +425,30 @@ app.post('/api/processos/:id/upload-autos', authMiddleware, async (req: Request,
       return res.status(404).json({ success: false, error: 'Processo não encontrado.' });
     }
 
-    if (!base64) {
-      return res.status(400).json({ success: false, error: 'O conteúdo em Base64 do arquivo PDF é obrigatório.' });
+    let cleanBase64 = '';
+    if (Buffer.isBuffer(req.body)) {
+      cleanBase64 = req.body.toString('base64');
+    } else if (req.body && req.body.base64) {
+      cleanBase64 = req.body.base64;
+      const commaIdx = cleanBase64.indexOf(',');
+      if (commaIdx !== -1) {
+        cleanBase64 = cleanBase64.substring(commaIdx + 1);
+      }
+    } else if (typeof req.body === 'string') {
+      cleanBase64 = req.body.replace(/^data:application\/pdf;base64,/, '');
     }
 
-    const geminiKey = (req.headers['x-gemini-key'] as string) || req.body.geminiKey || process.env.GEMINI_API_KEY;
+    if (!cleanBase64 || cleanBase64.trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'O conteúdo em PDF é obrigatório.' });
+    }
+
+    const geminiKey = (req.headers['x-gemini-key'] as string) || (req.body && req.body.geminiKey) || process.env.GEMINI_API_KEY;
     if (!geminiKey) {
       return res.status(400).json({
         success: false,
         errorType: 'MISSING_GEMINI_KEY',
         error: 'Chave GEMINI_API_KEY não configurada no servidor backend ou na aplicação.'
       });
-    }
-
-    // 1. Extrair limpo o Base64 sem duplicar memória
-    let cleanBase64 = base64;
-    const commaIdx = base64.indexOf(',');
-    if (commaIdx !== -1) {
-      cleanBase64 = base64.substring(commaIdx + 1);
     }
 
     // 2. Prompt ultra otimizado para o Gemini Multimodal NATIVO (sem pdf-parse em memória)
@@ -1595,18 +1617,33 @@ async function autoSeedDatabase() {
     const processoCount = await prisma.processo.count();
     console.log(`🌱 [DATABASE INIT] Usuários: ${userCount}, Processos: ${processoCount}`);
 
+    let defaultPass = '123';
+    const localCred = path.join(__dirname, '..', 'user_credentials.json');
+    const driveCred = 'G:\\Meu Drive\\PROFISSIONAL\\FIDELLIS NUNES ADVOCACIA\\sistema\\database\\user_credentials.json';
+    if (fs.existsSync(localCred)) {
+      try { defaultPass = JSON.parse(fs.readFileSync(localCred, 'utf8')).password || '123'; } catch(e){}
+    } else if (fs.existsSync(driveCred)) {
+      try { defaultPass = JSON.parse(fs.readFileSync(driveCred, 'utf8')).password || '123'; } catch(e){}
+    }
+
     const emailOficial = 'rudson@fidellisnunes.adv.br';
     let user = await prisma.user.findUnique({ where: { email: emailOficial } });
     if (!user) {
       user = await prisma.user.create({
         data: {
           email: emailOficial,
-          password: '123',
+          password: defaultPass,
           name: 'Dr. Rudson Fidellis Nunes',
           role: 'ADVOGADO'
         }
       });
       console.log(`✅ [AUTO SEED] Criado usuário oficial: ${user.email}`);
+    } else {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: defaultPass }
+      });
+      console.log(`ℹ️ [AUTO SEED] Usuário ${user.email} atualizado com a senha persistida.`);
     }
 
     let advogado = await prisma.advogado.findFirst({ where: { oab: '35.054', uf: 'ES' } });

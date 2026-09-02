@@ -9,20 +9,34 @@ async function main() {
   // 1. Criar ou atualizar Usuário principal com o e-mail oficial zoho
   const emailOficial = 'rudson@fidellisnunes.adv.br';
   
+  // Ler senha persistida se existir (evita reset para '123')
+  let defaultPass = '123';
+  const credPath = path.join(__dirname, 'user_credentials.json');
+  const driveCredPath = 'G:\\Meu Drive\\PROFISSIONAL\\FIDELLIS NUNES ADVOCACIA\\sistema\\database\\user_credentials.json';
+  if (fs.existsSync(credPath)) {
+    try { defaultPass = JSON.parse(fs.readFileSync(credPath, 'utf8')).password || '123'; } catch(e){}
+  } else if (fs.existsSync(driveCredPath)) {
+    try { defaultPass = JSON.parse(fs.readFileSync(driveCredPath, 'utf8')).password || '123'; } catch(e){}
+  }
+
   let user = await prisma.user.findUnique({ where: { email: emailOficial } });
 
   if (!user) {
     user = await prisma.user.create({
       data: {
         email: emailOficial,
-        password: '123',
+        password: defaultPass,
         name: 'Dr. Rudson Fidellis Nunes',
         role: 'ADVOGADO'
       }
     });
     console.log(`✅ Usuário criado: ${user.email}`);
   } else {
-    console.log(`ℹ️ Usuário ${user.email} já existe.`);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: defaultPass }
+    });
+    console.log(`ℹ️ Usuário ${user.email} atualizado com senha persistida.`);
   }
 
   // 2. Criar ou vincular Advogado (OAB/ES 35.054)

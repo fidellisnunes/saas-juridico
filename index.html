@@ -3620,84 +3620,77 @@
       const statusDiv = document.getElementById('autos-upload-status');
       const token = localStorage.getItem('saas_juridico_token');
       
-      statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Lendo arquivo PDF...`;
+      const maxBytes = 45 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        alert("O arquivo PDF selecionado possui mais de 45MB (" + (file.size / (1024 * 1024)).toFixed(1) + "MB).\n\nPara evitar estouro de rede, selecione um PDF menor ou dividido.");
+        return;
+      }
 
-      const reader = new FileReader();
-      reader.onload = async function() {
-        statusDiv.innerHTML = `<i class="fa-solid fa-brain fa-bounce"></i> Processando autos e extraindo histórico com IA...`;
+      statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Preparando arquivo PDF (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`;
 
-        try {
-          const reqHeaders = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          };
-          const geminiKeyHeader = localStorage.getItem('gemini_api_key');
-          if (geminiKeyHeader && geminiKeyHeader.trim()) {
-            reqHeaders['x-gemini-key'] = geminiKeyHeader.trim();
-          }
+      try {
+        statusDiv.innerHTML = `<i class="fa-solid fa-brain fa-bounce"></i> Transmitindo autos e extraindo histórico com IA...`;
 
-          const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}/upload-autos`, {
-            method: 'POST',
-            headers: reqHeaders,
-            body: JSON.stringify({
-              filename: file.name,
-              filesize: file.size,
-              base64: reader.result
-            })
-          });
-
-          const result = await response.json();
-          if (result.success) {
-            statusDiv.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--color-success)"></i> Autos e movimentações importados com sucesso!`;
-            
-            // Atualizar lista local
-            const index = listagemProcessosGeral.findIndex(p => p.id === globalEditProcessoId);
-            if (index !== -1) {
-              listagemProcessosGeral[index] = result.data;
-            }
-
-            // Recarregar tabelas e dados do dashboard
-            carregarProcessosTabela();
-            carregarDadosDashboard();
-            carregarClientesCRM();
-
-            // Recarregar tela de detalhes
-            verDetalhesProcesso(globalEditProcessoId, false);
-            alert("Histórico integral dos autos e dados das partes extraídos e atualizados com sucesso via IA Gemini!");
-          } else {
-            statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Erro ao processar arquivo`;
-            if (result.errorType === 'MISSING_GEMINI_KEY') {
-              const userKey = prompt("A chave de API do Gemini não está configurada no servidor.\n\nPor favor, cole abaixo a sua chave GEMINI_API_KEY (obtida em aistudio.google.com) para ativar o leitor de PDF:");
-              if (userKey && userKey.trim()) {
-                const keyClean = userKey.trim();
-                localStorage.setItem('gemini_api_key', keyClean);
-                await fetch(`${BACKEND_URL}/api/system/config-gemini`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                  body: JSON.stringify({ geminiKey: keyClean })
-                });
-                alert("Chave salva! Clique no botão de enviar o PDF novamente para importar os autos.");
-              }
-            } else {
-              alert("Erro ao processar os autos: " + result.error);
-            }
-          }
-        } catch (err) {
-          console.error('Erro no upload de autos:', err);
-          statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Falha no envio`;
-          alert("Falha de comunicação com o servidor ao enviar os autos.\n\nDetalhes: " + (err.message || err));
+        const reqHeaders = {
+          'Content-Type': 'application/pdf',
+          'Authorization': `Bearer ${token}`,
+          'x-filename': encodeURIComponent(file.name)
+        };
+        const geminiKeyHeader = localStorage.getItem('gemini_api_key');
+        if (geminiKeyHeader && geminiKeyHeader.trim()) {
+          reqHeaders['x-gemini-key'] = geminiKeyHeader.trim();
         }
-      };
 
-      reader.onerror = function() {
-        statusDiv.innerHTML = `Erro ao ler arquivo`;
-        alert("Erro ao ler o arquivo PDF local.");
-      };
+        const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}/upload-autos`, {
+          method: 'POST',
+          headers: reqHeaders,
+          body: file
+        });
 
-      reader.readAsDataURL(file);
+        const result = await response.json();
+        if (result.success) {
+          statusDiv.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--color-success)"></i> Autos e movimentações importados com sucesso!`;
+          
+          // Atualizar lista local
+          const index = listagemProcessosGeral.findIndex(p => p.id === globalEditProcessoId);
+          if (index !== -1) {
+            listagemProcessosGeral[index] = result.data;
+          }
+
+          // Recarregar tabelas e dados do dashboard
+          carregarProcessosTabela();
+          carregarDadosDashboard();
+          carregarClientesCRM();
+
+          // Recarregar tela de detalhes
+          verDetalhesProcesso(globalEditProcessoId, false);
+          alert("Histórico integral dos autos e dados das partes extraídos e atualizados com sucesso via IA Gemini!");
+        } else {
+          statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Erro ao processar arquivo`;
+          if (result.errorType === 'MISSING_GEMINI_KEY') {
+            const userKey = prompt("A chave de API do Gemini não está configurada no servidor.\n\nPor favor, cole abaixo a sua chave GEMINI_API_KEY (obtida em aistudio.google.com) para ativar o leitor de PDF:");
+            if (userKey && userKey.trim()) {
+              const keyClean = userKey.trim();
+              localStorage.setItem('gemini_api_key', keyClean);
+              await fetch(`${BACKEND_URL}/api/system/config-gemini`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ geminiKey: keyClean })
+              });
+              alert("Chave salva! Clique no botão de enviar o PDF novamente para importar os autos.");
+            }
+          } else {
+            alert("Erro ao processar os autos: " + result.error);
+          }
+        }
+      } catch (err) {
+        console.error('Erro no upload de autos:', err);
+        statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger)"></i> Falha no envio`;
+        alert("Falha de comunicação com o servidor ao enviar os autos.\n\nDetalhes: " + (err.message || err));
+      }
     }
 
     async function resumirAndamentosComIA() {
