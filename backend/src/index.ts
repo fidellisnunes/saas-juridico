@@ -477,7 +477,7 @@ Regras:
 1. Extraia o nome exato dos polos ativo e passivo, vara e classe.
 2. Ordene a lista de movimentações da mais recente para a mais antiga.`;
 
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-pro'];
     let geminiResponse: any = null;
     let lastErrorText = '';
 
@@ -727,7 +727,7 @@ Estruturação da Peça:
 
 Retorne a peça em linguagem formal forense com formatação Markdown limpa e pronta para uso.`;
 
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-pro'];
     let geminiResponse: any = null;
     let lastErrorText = '';
 
@@ -741,9 +741,15 @@ Retorne a peça em linguagem formal forense com formatação Markdown limpa e pr
         });
         if (resp.ok) {
           geminiResponse = resp;
+          console.log(`✅ [PETICAO GEMINI] Minuta gerada com sucesso via modelo: ${model}`);
           break;
         } else {
-          lastErrorText = await resp.text();
+          const errBody = await resp.text();
+          lastErrorText = `Modelo ${model} (HTTP ${resp.status}): ${errBody}`;
+          console.warn(`[PETICAO GEMINI WARN] ${lastErrorText}`);
+          if (errBody.includes('API key not valid') || resp.status === 400 || resp.status === 403) {
+            break;
+          }
         }
       } catch (err: any) {
         console.warn(`[PETICAO GEMINI WARN] Erro em ${model}:`, err.message);
@@ -751,7 +757,14 @@ Retorne a peça em linguagem formal forense com formatação Markdown limpa e pr
     }
 
     if (!geminiResponse) {
-      return res.status(502).json({ success: false, error: `Erro na API do Gemini ao gerar petição: ${lastErrorText.substring(0, 200)}` });
+      if (lastErrorText.includes('API key not valid')) {
+        return res.status(400).json({
+          success: false,
+          errorType: 'MISSING_GEMINI_KEY',
+          error: 'A chave GEMINI_API_KEY configurada não é válida. Por favor, forneça uma chave válida obtida em aistudio.google.com.'
+        });
+      }
+      return res.status(502).json({ success: false, error: `Falha na API do Gemini ao gerar petição. Detalhes: ${lastErrorText.substring(0, 250)}` });
     }
 
     const geminiData = (await geminiResponse.json()) as any;
@@ -1784,11 +1797,7 @@ async function autoSeedDatabase() {
       });
       console.log(`✅ [AUTO SEED] Criado usuário oficial: ${user.email}`);
     } else {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { password: defaultPass }
-      });
-      console.log(`ℹ️ [AUTO SEED] Usuário ${user.email} atualizado com a senha persistida.`);
+      console.log(`ℹ️ [AUTO SEED] Usuário ${user.email} mantido com a senha atual do banco.`);
     }
 
     let advogado = await prisma.advogado.findFirst({ where: { oab: '35.054', uf: 'ES' } });

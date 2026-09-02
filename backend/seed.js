@@ -32,11 +32,7 @@ async function main() {
     });
     console.log(`✅ Usuário criado: ${user.email}`);
   } else {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: defaultPass }
-    });
-    console.log(`ℹ️ Usuário ${user.email} atualizado com senha persistida.`);
+    console.log(`ℹ️ Usuário ${user.email} já existe. Senha no banco mantida sem alterações.`);
   }
 
   // 2. Criar ou vincular Advogado (OAB/ES 35.054)
