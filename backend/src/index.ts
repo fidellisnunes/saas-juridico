@@ -618,6 +618,151 @@ Regras:
   }
 });
 
+// Sincronizar dados e movimentações de um processo via API pública PJe/DataJud por 1-Clique
+app.post('/api/processos/:id/sync-pje-datajud', authMiddleware, async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const proc = await prisma.processo.findFirst({
+      where: {
+        OR: [
+          { id },
+          { numeroCNJ: id },
+          { numeroCNJ: id.replace(/\D/g, '') }
+        ]
+      },
+      include: { cliente: true }
+    });
+
+    if (!proc) {
+      return res.status(404).json({ success: false, error: 'Processo não encontrado.' });
+    }
+
+    const tribunal = proc.tribunal || 'TJES';
+    const result = await consultarMovimentacoesDatajud(tribunal, proc.numeroCNJ);
+
+    if (result.success && result.movimentos && result.movimentos.length > 0) {
+      const novosMovs = result.movimentos;
+      const ultimoMov = novosMovs[0];
+
+      const atualizado = await prisma.processo.update({
+        where: { id: proc.id },
+        data: {
+          estagio: ultimoMov.titulo,
+          movimentacoes: JSON.stringify(novosMovs)
+        },
+        include: { cliente: true }
+      });
+
+      // Atualizar no CRM de clientes
+      if (proc.clienteId) {
+        try {
+          await prisma.client.update({
+            where: { id: proc.clienteId },
+            data: { status: 'ATIVO' }
+          });
+        } catch(e){}
+      }
+
+      syncGoogleDriveBackups();
+      return res.json({ success: true, data: atualizado, message: 'Processo e movimentações sincronizados com sucesso via PJe/DataJud!' });
+    } else {
+      return res.status(400).json({ success: false, error: result.errorMessage || 'Nenhum andamento novo encontrado no PJe/DataJud.' });
+    }
+  } catch (error: any) {
+    console.error('Erro na sincronização PJe/DataJud:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Gerar minuta de petição formatada para o PJe com base nos autos e IA Gemini
+app.post('/api/processos/:id/peticionar', authMiddleware, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { tipoPeticao, orientacoes } = req.body;
+
+  try {
+    const proc = await prisma.processo.findFirst({
+      where: {
+        OR: [
+          { id },
+          { numeroCNJ: id },
+          { numeroCNJ: id.replace(/\D/g, '') }
+        ]
+      },
+      include: { cliente: true }
+    });
+
+    if (!proc) {
+      return res.status(404).json({ success: false, error: 'Processo não encontrado.' });
+    }
+
+    const geminiKey = (req.headers['x-gemini-key'] as string) || req.body.geminiKey || process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      return res.status(400).json({
+        success: false,
+        errorType: 'MISSING_GEMINI_KEY',
+        error: 'Chave GEMINI_API_KEY não configurada no servidor backend ou na aplicação.'
+      });
+    }
+
+    const prompt = `Você é um advogado sênior especialista em Direito Processual Civil e Trabalhista brasileiro.
+Elabore uma minuta jurídica profissional completa e pronta de "${tipoPeticao || 'Petição Intermediária'}" para ser protocolada no sistema PJe.
+
+Dados do Processo:
+- CNJ: ${proc.numeroCNJ}
+- Tribunal: ${proc.tribunal}
+- Vara: ${proc.vara} / Comarca: ${proc.comarca}
+- Polo Ativo (Autor): ${proc.poloAtivo}
+- Polo Passivo (Réu): ${proc.poloPassivo}
+- Parte Representada pelo Escritório: ${proc.clienteRepresentado === 'RECLAMANTE' ? proc.poloAtivo : proc.poloPassivo}
+- Orientações Específicas do Advogado: ${orientacoes || 'Sem orientações específicas. Elaborar de acordo com a praxe forense.'}
+
+Estruturação da Peça:
+1. Endereçamento completo ao Juízo.
+2. Qualificação das Partes.
+3. Dos Fatos e do Direito (Fundamentação jurídica sólida com artigos do CPC/CLT e jurisprudência).
+4. Dos Pedidos e Requerimentos Finais.
+5. Fechamento Forense com data e local (Serra/ES ou Vitória/ES).
+6. Assinatura: RUDSON FIDELLIS NUNES - OAB/ES 35.054.
+
+Retorne a peça em linguagem formal forense com formatação Markdown limpa e pronta para uso.`;
+
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    let geminiResponse: any = null;
+    let lastErrorText = '';
+
+    for (const model of modelsToTry) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      try {
+        const resp = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        if (resp.ok) {
+          geminiResponse = resp;
+          break;
+        } else {
+          lastErrorText = await resp.text();
+        }
+      } catch (err: any) {
+        console.warn(`[PETICAO GEMINI WARN] Erro em ${model}:`, err.message);
+      }
+    }
+
+    if (!geminiResponse) {
+      return res.status(502).json({ success: false, error: `Erro na API do Gemini ao gerar petição: ${lastErrorText.substring(0, 200)}` });
+    }
+
+    const geminiData = (await geminiResponse.json()) as any;
+    const peticaoTexto = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    res.json({ success: true, minuta: peticaoTexto });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Buscar Captcha do TRT-17 para um processo específico
 app.get('/api/processos/captcha/:numero', authMiddleware, async (req: Request, res: Response) => {
   const { numero } = req.params;

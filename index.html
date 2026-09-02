@@ -1679,7 +1679,10 @@
             <p id="det-full-sub" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Visualização detalhada de andamentos e pareceres processuais</p>
           </div>
         </div>
-        <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <button id="btn-sync-pje" class="btn-action" style="background: linear-gradient(135deg, #10B981, #059669); color: #fff; font-weight: 700; border: none; padding: 0.6rem 1.1rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(16,185,129,0.25); display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onclick="sincronizarProcessoPjeDatajud()">
+            <i class="fa-solid fa-bolt"></i> ⚡ Sincronizar Tudo via PJe / DataJud
+          </button>
           <span class="sync-badge" id="det-full-estagio-badge" style="background: rgba(245,158,11,0.15); color: var(--gold-primary); border-color: rgba(245,158,11,0.25); font-size: 0.85rem; padding: 0.5rem 1rem;">Estágio: ATSum</span>
         </div>
       </header>
@@ -1820,6 +1823,50 @@
               <div id="ai-result" class="hidden" style="font-size: 0.8rem; line-height: 1.5; color: #e4e4e7; background: rgba(255,255,255,0.01); border-left: 3px solid var(--gold-primary); padding-left: 0.75rem;">
                 <!-- Conteúdo injetado por JS -->
               </div>
+            </div>
+          </div>
+
+          <!-- Card de Peticionamento PJe & Peças IA -->
+          <div class="panel" style="border: 1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.02);">
+            <div class="panel-header" style="border-bottom-color: rgba(99,102,241,0.2);">
+              <h2 class="panel-title" style="color: #818CF8;"><i class="fa-solid fa-file-signature"></i> Peticionamento & Peças PJe (IA)</h2>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.4;">
+              Gere minutas de petições intermediárias, contestações e recursos formatados e prontos para protocolo no sistema PJe com base no histórico do processo.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; color: var(--text-muted);">Tipo de Peça / Petição:</label>
+                <select id="pje-tipo-peticao" class="form-control" style="font-size: 0.8rem; padding: 0.4rem 0.6rem;">
+                  <option value="Manifestação sobre Despacho/Decisão">Manifestação sobre Despacho/Decisão</option>
+                  <option value="Petição de Juntada de Documentos">Petição de Juntada de Documentos</option>
+                  <option value="Minuta de Acordo Extrajudicial">Minuta de Acordo Extrajudicial</option>
+                  <option value="Contestação Trabalhista / Cível">Contestação Trabalhista / Cível</option>
+                  <option value="Réplica à Contestação">Réplica à Contestação</option>
+                  <option value="Recurso / Agravo">Recurso / Agravo</option>
+                  <option value="Petição de Cumprimento de Sentença">Petição de Cumprimento de Sentença</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; color: var(--text-muted);">Orientações / Tese Específica do Advogado:</label>
+                <textarea id="pje-orientacoes-peticao" class="form-control" rows="2" placeholder="Ex: Requerer dilação de prazo por 15 dias ou alegar quitação dos valores..." style="font-size: 0.8rem; padding: 0.4rem 0.6rem;"></textarea>
+              </div>
+
+              <button class="btn-action" style="width: 100%; justify-content: center; font-weight: bold; background: linear-gradient(135deg, #6366F1, #4F46E5); color: #fff; border: none; padding: 0.6rem; border-radius: 6px; cursor: pointer;" onclick="gerarPeticaoPjeIA()">
+                <i class="fa-solid fa-pen-nib"></i> Gerar Minuta de Petição para PJe
+              </button>
+            </div>
+
+            <!-- Display da Petição Gerada -->
+            <div id="pje-peticao-block" class="hidden" style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-weight: bold; color: #818CF8; font-size: 0.8rem;"><i class="fa-solid fa-file-lines"></i> Minuta Pronta para PJe</span>
+                <button class="btn-action" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; background: rgba(255,255,255,0.1);" onclick="copiarMinutaPeticao()"><i class="fa-solid fa-copy"></i> Copiar Texto</button>
+              </div>
+              <pre id="pje-peticao-result" style="font-size: 0.75rem; line-height: 1.4; color: #e4e4e7; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 0.85rem; border-radius: 6px; white-space: pre-wrap; word-wrap: break-word; max-height: 350px; overflow-y: auto;"></pre>
             </div>
           </div>
         </div>
@@ -3761,6 +3808,92 @@
       aiSkeleton.classList.add('hidden');
       aiResult.classList.remove('hidden');
       aiResult.innerHTML = parecerHTML;
+    }
+
+    async function sincronizarProcessoPjeDatajud() {
+      if (!globalEditProcessoId) return;
+
+      const token = localStorage.getItem('saas_juridico_token');
+      const btnSync = document.getElementById('btn-sync-pje');
+      if (btnSync) btnSync.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando PJe/DataJud...`;
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}/sync-pje-datajud`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          // Atualizar lista local
+          const index = listagemProcessosGeral.findIndex(p => p.id === globalEditProcessoId);
+          if (index !== -1) {
+            listagemProcessosGeral[index] = result.data;
+          }
+
+          carregarProcessosTabela();
+          carregarDadosDashboard();
+          carregarClientesCRM();
+          verDetalhesProcesso(globalEditProcessoId, false);
+          alert("⚡ Processo e movimentações sincronizados com sucesso diretamente da API pública do PJe / DataJud!");
+        } else {
+          alert("Aviso na sincronização PJe: " + (result.error || result.errorMessage));
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Erro de conexão ao sincronizar com o PJe/DataJud.");
+      } finally {
+        if (btnSync) btnSync.innerHTML = `<i class="fa-solid fa-bolt"></i> ⚡ Sincronizar Tudo via PJe / DataJud`;
+      }
+    }
+
+    async function gerarPeticaoPjeIA() {
+      if (!globalEditProcessoId) return;
+
+      const tipoPeticao = document.getElementById('pje-tipo-peticao').value;
+      const orientacoes = document.getElementById('pje-orientacoes-peticao').value;
+      const token = localStorage.getItem('saas_juridico_token');
+      const geminiKeyHeader = localStorage.getItem('gemini_api_key') || "";
+
+      const pjeBlock = document.getElementById('pje-peticao-block');
+      const pjeResult = document.getElementById('pje-peticao-result');
+
+      pjeBlock.classList.remove('hidden');
+      pjeResult.innerText = "⚡ A inteligência artificial está analisando o histórico do processo e redigindo a minuta para o PJe...";
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/processos/${globalEditProcessoId}/peticionar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-gemini-key': geminiKeyHeader
+          },
+          body: JSON.stringify({ tipoPeticao, orientacoes })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          pjeResult.innerText = result.minuta;
+        } else {
+          pjeResult.innerText = "Erro ao gerar petição: " + result.error;
+          if (result.errorType === 'MISSING_GEMINI_KEY') {
+            alert("Por favor, configure a chave de API do Gemini para gerar petições automaticamente.");
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        pjeResult.innerText = "Erro de conexão ao gerar minuta de petição.";
+      }
+    }
+
+    function copiarMinutaPeticao() {
+      const text = document.getElementById('pje-peticao-result').innerText;
+      if (!text) return;
+      navigator.clipboard.writeText(text);
+      alert("Minuta de petição copiada para a área de transferência! Pronta para colar no PJe.");
     }
 
     function abrirDocumentoIntimacao(id, isDashboard = false) {
